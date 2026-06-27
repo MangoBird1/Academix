@@ -30,13 +30,16 @@ function normalizePayload(body) {
   const base = {
     title: extracted.title || 'Untitled application',
     organization_name: extracted.company || extracted.organization || 'Unknown',
-    category: category === 'education' ? 'education' : 'career',
+    category: category || 'career',
     location: extracted.location || 'Remote',
+    description: extracted.description || extracted.summary || '',
     source_url: source_url || '',
     application_deadline: extracted.deadline || '',
     // Default the personal goal to the hard deadline; the user tightens it later.
     personal_completion_deadline: extracted.deadline || '',
     notes: extracted.summary || '',
+    my_notes: '',
+    tasks: [],
   };
 
   if (base.category === 'career') {

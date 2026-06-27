@@ -141,12 +141,14 @@ export default function Calendar({ value, max, onSelect }) {
       <div className="mt-2 flex items-center gap-3 px-1 pt-2 border-t border-teal-900/30 text-[9px] text-slate-500">
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500" />
-          Goal
+          Selected
         </span>
-        <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-rose-500/60" />
-          Deadline cap
-        </span>
+        {maxDate && (
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-rose-500/60" />
+            Deadline cap
+          </span>
+        )}
       </div>
     </div>
   );

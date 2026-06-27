@@ -17,17 +17,39 @@ const formatLong = (iso) => {
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
+const categoryTagStyles = (cat) => {
+  if (cat === 'career') return 'bg-cyan-950/60 text-cyan-400 border border-cyan-500/20';
+  if (cat === 'education') return 'bg-purple-950/60 text-purple-400 border border-purple-500/20';
+  return 'bg-teal-950/60 text-teal-300 border border-teal-500/20';
+};
+
+const categoryTagLabel = (cat) => {
+  if (cat === 'career') return 'Job';
+  if (cat === 'education') return 'Uni';
+  return cat || 'Other';
+};
+
 export default function AcademixTealDashboard({ initialApplications = [] }) {
   // The hook owns the list: it subscribes to Firestore (onSnapshot) when
   // configured and otherwise keeps the seed data in local state. Either way
-  // `updateApplication` patches the UI instantly and persists when connected.
-  const { applications, updateApplication, addApplication, isLive } =
-    useApplications(initialApplications);
+  // updates patch the UI instantly and persist when connected.
+  const {
+    applications,
+    updateApplication,
+    addApplication,
+    addTask,
+    toggleTask,
+    removeTask,
+    isLive,
+  } = useApplications(initialApplications);
 
   const [activeId, setActiveId] = useState(initialApplications[0]?.id || null);
   const [sortBy, setSortBy] = useState('application_deadline');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [search, setSearch] = useState('');
+  const [openCalendar, setOpenCalendar] = useState(null); // 'goal' | 'deadline' | null
+  const [newTaskText, setNewTaskText] = useState('');
 
   // Keep a valid active selection even as the live list changes.
   const resolvedActiveId =
@@ -36,39 +58,59 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     null;
   const selectedApp = applications.find((app) => app.id === resolvedActiveId);
 
-  // Client-side search + quick sorting for zero-latency feedback.
+  // Distinct categories (built-in + any custom ones the user added).
+  const categories = Array.from(
+    new Set(applications.map((a) => a.category).filter(Boolean))
+  );
+
+  // Client-side search + category filter + quick sorting (zero-latency).
   const visibleApplications = applications
     .filter((app) => {
+      if (categoryFilter !== 'all' && app.category !== categoryFilter) {
+        return false;
+      }
       if (!search.trim()) return true;
-      const haystack =
-        `${app.title} ${app.organization_name} ${app.location || ''}`.toLowerCase();
+      const haystack = `${app.title} ${app.organization_name} ${
+        app.location || ''
+      } ${app.category || ''} ${app.description || ''}`.toLowerCase();
       return haystack.includes(search.trim().toLowerCase());
     })
     .sort((a, b) => {
-      if (sortBy === 'category') return a.category.localeCompare(b.category);
+      if (sortBy === 'category') {
+        return (a.category || '').localeCompare(b.category || '');
+      }
       return new Date(a[sortBy]) - new Date(b[sortBy]);
     });
 
-  // Safe handler to update and restrict dates: a personal goal date may never
-  // sit past the official, externally-imposed application deadline.
-  const handleDateChange = (chosenDate) => {
+  // ---- field editors -------------------------------------------------------
+  const patch = (partial) => {
     if (!selectedApp) return;
+    updateApplication(selectedApp.id, partial);
+  };
 
+  // Goal date: may never sit past the official application deadline.
+  const handleGoalChange = (chosenDate) => {
+    if (!selectedApp) return;
     if (new Date(chosenDate) > new Date(selectedApp.application_deadline)) {
       alert(
         'Validation Error: Personal goal date cannot sit past the official application deadline!'
       );
       return;
     }
-
-    updateApplication(selectedApp.id, {
-      personal_completion_deadline: chosenDate,
-    });
+    patch({ personal_completion_deadline: chosenDate });
   };
 
-  const handleNotesChange = (value) => {
+  // Deadline (cap): if it drops below the current goal, pull the goal back too.
+  const handleDeadlineChange = (chosenDate) => {
     if (!selectedApp) return;
-    updateApplication(selectedApp.id, { notes: value });
+    const partial = { application_deadline: chosenDate };
+    if (
+      selectedApp.personal_completion_deadline &&
+      new Date(selectedApp.personal_completion_deadline) > new Date(chosenDate)
+    ) {
+      partial.personal_completion_deadline = chosenDate;
+    }
+    patch(partial);
   };
 
   const handleNewApplication = () => {
@@ -78,18 +120,39 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
       organization_name: 'Untitled organization',
       category: 'career',
       location: 'Remote',
+      description: '',
       source_url: '',
       application_deadline: deadline,
       personal_completion_deadline: deadline,
       notes: '',
+      my_notes: '',
+      tasks: [],
       requirements: { technical_skills: [] },
     });
     setActiveId(id);
     setSearch('');
+    setCategoryFilter('all');
   };
+
+  const handleAddTask = () => {
+    if (!selectedApp) return;
+    addTask(selectedApp.id, newTaskText);
+    setNewTaskText('');
+  };
+
+  const tasks = selectedApp?.tasks || [];
+  const doneCount = tasks.filter((t) => t.done).length;
 
   const paneCard =
     'flex flex-col h-full rounded-2xl border border-teal-500/15 bg-[#0a141d]/50 shadow-xl shadow-black/30 ring-1 ring-inset ring-white/[0.02] overflow-hidden';
+  const editInput =
+    'w-full px-3 py-2 rounded-xl bg-[#060c12]/80 border border-teal-900/30 text-slate-200 text-sm focus:outline-none focus:border-teal-500/50 transition';
+  const calBtn = (active) =>
+    `h-8 w-8 shrink-0 flex items-center justify-center rounded-lg border text-sm transition ${
+      active
+        ? 'bg-teal-500/20 border-teal-400/50 text-teal-200'
+        : 'bg-teal-950/50 border-teal-500/20 text-teal-400 hover:bg-teal-900'
+    }`;
 
   return (
     <div className="flex h-screen w-screen bg-[#070e14] text-cyan-50 font-sans overflow-hidden select-none">
@@ -154,9 +217,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
         )}
 
         {/* PANE 1: SEARCH AND INDEX TREE */}
-        <section
-          className={`w-80 ${paneCard} ${!sidebarOpen ? 'pt-12' : ''}`}
-        >
+        <section className={`w-80 ${paneCard} ${!sidebarOpen ? 'pt-12' : ''}`}>
           <div className="p-4 border-b border-teal-900/30 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-slate-200">
@@ -174,7 +235,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search applications..."
+              placeholder="Search title, company, category..."
               className="w-full px-4 py-2 border border-teal-900/30 rounded-xl text-sm bg-[#060c12] text-teal-100 placeholder-teal-800/40 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/30"
             />
             <div className="flex items-center justify-between text-xs text-teal-600/80 font-medium px-1">
@@ -196,6 +257,23 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                 <option value="category" className="bg-[#0a141d]">
                   Category
                 </option>
+              </select>
+            </div>
+            <div className="flex items-center justify-between text-xs text-teal-600/80 font-medium px-1">
+              <span>Category:</span>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="bg-transparent font-bold text-teal-400 cursor-pointer focus:outline-none hover:text-teal-300 transition capitalize"
+              >
+                <option value="all" className="bg-[#0a141d]">
+                  All categories
+                </option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat} className="bg-[#0a141d]">
+                    {cat}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -220,13 +298,11 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     </h4>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span
-                        className={`text-[10px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded-md ${
-                          app.category === 'career'
-                            ? 'bg-cyan-950/60 text-cyan-400 border border-cyan-500/20'
-                            : 'bg-purple-950/60 text-purple-400 border border-purple-500/20'
-                        }`}
+                        className={`text-[10px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded-md max-w-[80px] truncate ${categoryTagStyles(
+                          app.category
+                        )}`}
                       >
-                        {app.category === 'career' ? 'Job' : 'Uni'}
+                        {categoryTagLabel(app.category)}
                       </span>
                       {isActive && (
                         <span className="h-4 w-4 flex items-center justify-center rounded-full bg-teal-500 text-[9px] text-[#04121a] font-black">
@@ -260,7 +336,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
 
             {visibleApplications.length === 0 && (
               <div className="px-3 py-8 text-center text-xs text-teal-800/70 font-medium">
-                No applications match your search.
+                No applications match your filters.
               </div>
             )}
           </div>
@@ -271,69 +347,118 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
           <div className="flex-1 overflow-y-auto p-8 bg-[#0a1520]/20">
             {selectedApp ? (
               <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-black tracking-tight text-white">
-                    {selectedApp.title}
-                  </h2>
-                  <p className="text-md text-teal-400/80 font-medium mt-0.5">
-                    {selectedApp.organization_name}
-                  </p>
+                {/* Editable title + company */}
+                <div className="space-y-1">
+                  <input
+                    value={selectedApp.title}
+                    onChange={(e) => patch({ title: e.target.value })}
+                    placeholder="Job / programme title"
+                    className="w-full bg-transparent text-2xl font-black tracking-tight text-white focus:outline-none focus:bg-[#060c12]/60 rounded-lg px-1 -ml-1 transition"
+                  />
+                  <input
+                    value={selectedApp.organization_name}
+                    onChange={(e) =>
+                      patch({ organization_name: e.target.value })
+                    }
+                    placeholder="Organization / company"
+                    className="w-full bg-transparent text-md text-teal-400/80 font-medium focus:outline-none focus:bg-[#060c12]/60 rounded-lg px-1 -ml-1 transition"
+                  />
                 </div>
 
-                {/* URL Context Field */}
+                {/* Description (between company name and URL) */}
                 <div className="space-y-2">
                   <span className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
-                    Source URL
+                    Description
                   </span>
-                  <a
-                    href={selectedApp.source_url || undefined}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block p-3 bg-[#060c12]/80 border border-teal-900/30 rounded-xl text-xs text-cyan-300/70 truncate hover:text-cyan-200 hover:border-teal-500/40 transition"
-                  >
-                    {selectedApp.source_url || 'No source URL yet'}
-                  </a>
+                  <textarea
+                    value={selectedApp.description || ''}
+                    onChange={(e) => patch({ description: e.target.value })}
+                    placeholder="Short summary of this opportunity..."
+                    className="w-full h-20 p-4 rounded-2xl border border-teal-900/30 bg-[#060c12]/80 text-slate-300 text-sm focus:outline-none focus:border-teal-500/50 resize-none"
+                  />
+                </div>
+
+                {/* Editable Source URL */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between pl-1 pr-0.5">
+                    <span className="text-xs font-bold text-teal-500 uppercase tracking-widest">
+                      Source URL
+                    </span>
+                    {selectedApp.source_url ? (
+                      <a
+                        href={selectedApp.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-cyan-400 hover:text-cyan-200 transition"
+                      >
+                        Open ↗
+                      </a>
+                    ) : null}
+                  </div>
+                  <input
+                    value={selectedApp.source_url || ''}
+                    onChange={(e) => patch({ source_url: e.target.value })}
+                    placeholder="https://..."
+                    className={`${editInput} text-cyan-300/80`}
+                  />
                 </div>
 
                 {/* AI Dynamic Extractors */}
                 <div className="space-y-3 bg-[#0a141d]/30 border border-teal-950/40 p-5 rounded-2xl">
                   <h3 className="text-xs font-bold text-teal-500 uppercase tracking-widest">
-                    🛠️ AI Extracted Targets
+                    🛠️ AI Extracted Skills
                   </h3>
                   <ul className="space-y-1.5 text-sm text-slate-300">
-                    {selectedApp.category === 'career' ? (
-                      selectedApp.requirements?.technical_skills?.map((skill) => (
+                    {selectedApp.category === 'education' ? (
+                      <>
+                        <li className="flex items-center gap-2">
+                          <span className="text-xs text-teal-500">▪</span> Minimum
+                          Academic GPA Target:{' '}
+                          {selectedApp.requirements?.gpa_threshold || '—'}
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span className="text-xs text-teal-500">▪</span>{' '}
+                          Secondary Prerequisites:{' '}
+                          {selectedApp.requirements?.standardized_tests || '—'}
+                        </li>
+                      </>
+                    ) : selectedApp.requirements?.technical_skills?.length ? (
+                      selectedApp.requirements.technical_skills.map((skill) => (
                         <li key={skill} className="flex items-center gap-2">
                           <span className="text-xs text-teal-500">▪</span> {skill}
                         </li>
                       ))
                     ) : (
-                      <>
-                        <li className="flex items-center gap-2">
-                          <span className="text-xs text-teal-500">▪</span> Minimum
-                          Academic GPA Target:{' '}
-                          {selectedApp.requirements?.gpa_threshold}
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="text-xs text-teal-500">▪</span>{' '}
-                          Secondary Prerequisites:{' '}
-                          {selectedApp.requirements?.standardized_tests}
-                        </li>
-                      </>
+                      <li className="text-xs text-slate-500 italic">
+                        No extracted skills yet.
+                      </li>
                     )}
                   </ul>
                 </div>
 
-                {/* User Editable Notes Section */}
+                {/* AI / Scraping Notes Section */}
                 <div className="space-y-2.5">
                   <label className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
                     📝 Core Scraping Notes
                   </label>
                   <textarea
                     value={selectedApp.notes || ''}
-                    onChange={(e) => handleNotesChange(e.target.value)}
-                    placeholder="Add notes about this application..."
-                    className="w-full h-32 p-4 rounded-2xl border border-teal-900/30 bg-[#060c12]/80 text-slate-300 text-sm focus:outline-none focus:border-teal-500/50 resize-none"
+                    onChange={(e) => patch({ notes: e.target.value })}
+                    placeholder="AI / scraping notes..."
+                    className="w-full h-28 p-4 rounded-2xl border border-teal-900/30 bg-[#060c12]/80 text-slate-300 text-sm focus:outline-none focus:border-teal-500/50 resize-none"
+                  />
+                </div>
+
+                {/* My Notes Section (new) */}
+                <div className="space-y-2.5">
+                  <label className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
+                    🗒️ My Notes
+                  </label>
+                  <textarea
+                    value={selectedApp.my_notes || ''}
+                    onChange={(e) => patch({ my_notes: e.target.value })}
+                    placeholder="Your personal notes, reminders and thoughts..."
+                    className="w-full h-28 p-4 rounded-2xl border border-teal-900/30 bg-[#060c12]/80 text-slate-300 text-sm focus:outline-none focus:border-teal-500/50 resize-none"
                   />
                 </div>
               </div>
@@ -350,79 +475,209 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {selectedApp ? (
               <>
+                {/* LOCATION / CATEGORY / DEADLINE */}
                 <div className="flex flex-col space-y-4 bg-teal-950/10 border border-teal-500/10 p-5 rounded-2xl backdrop-blur-xl">
-                  {/* LOCATION */}
-                  <div className="flex items-center gap-3.5 border-b border-teal-900/20 pb-3">
-                    <span className="text-lg">📍</span>
-                    <div>
-                      <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                  {/* LOCATION (editable) */}
+                  <div className="flex items-start gap-3.5 border-b border-teal-900/20 pb-3">
+                    <span className="text-lg leading-7">📍</span>
+                    <div className="flex-1">
+                      <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest mb-1">
                         Location
                       </p>
-                      <p className="text-sm text-slate-200 font-medium">
-                        {selectedApp.location || 'Remote'}
-                      </p>
+                      <input
+                        value={selectedApp.location || ''}
+                        onChange={(e) => patch({ location: e.target.value })}
+                        placeholder="Location"
+                        className="w-full bg-transparent text-sm text-slate-200 font-medium focus:outline-none focus:bg-[#060c12]/60 rounded px-1 -ml-1 transition"
+                      />
                     </div>
                   </div>
 
-                  {/* CATEGORY */}
-                  <div className="flex items-center gap-3.5 border-b border-teal-900/20 pb-3">
-                    <span className="text-lg">🏷️</span>
-                    <div>
-                      <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
-                        Category Type
+                  {/* CATEGORY (editable custom tag) */}
+                  <div className="flex items-start gap-3.5 border-b border-teal-900/20 pb-3">
+                    <span className="text-lg leading-7">🏷️</span>
+                    <div className="flex-1">
+                      <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest mb-1">
+                        Category / Tag
                       </p>
-                      <p className="text-sm text-slate-200 font-medium capitalize">
-                        {selectedApp.category}
-                      </p>
+                      <input
+                        value={selectedApp.category || ''}
+                        onChange={(e) => patch({ category: e.target.value })}
+                        placeholder="e.g. career, education, scholarship..."
+                        className="w-full bg-transparent text-sm text-slate-200 font-medium focus:outline-none focus:bg-[#060c12]/60 rounded px-1 -ml-1 transition"
+                      />
                     </div>
                   </div>
 
-                  {/* APPLICATION DEADLINE */}
-                  <div className="flex items-center gap-3.5">
-                    <span className="text-lg">📅</span>
-                    <div>
-                      <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
-                        Deadline of Application
-                      </p>
-                      <p className="text-sm text-rose-400 font-bold">
-                        {formatLong(selectedApp.application_deadline)}
-                      </p>
+                  {/* APPLICATION DEADLINE (editable via toggle calendar) */}
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-3.5">
+                        <span className="text-lg">📅</span>
+                        <div>
+                          <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                            Deadline of Application
+                          </p>
+                          <p className="text-sm text-rose-400 font-bold">
+                            {formatLong(selectedApp.application_deadline)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          setOpenCalendar((c) =>
+                            c === 'deadline' ? null : 'deadline'
+                          )
+                        }
+                        className={calBtn(openCalendar === 'deadline')}
+                        title="Toggle deadline calendar"
+                        aria-label="Toggle deadline calendar"
+                      >
+                        📆
+                      </button>
                     </div>
+                    {openCalendar === 'deadline' && (
+                      <div className="mt-3">
+                        <Calendar
+                          value={selectedApp.application_deadline}
+                          onSelect={handleDeadlineChange}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* PERSONAL COMPLETION DEADLINE + INLINE CALENDAR */}
+                {/* PERSONAL COMPLETION DEADLINE (editable via toggle calendar) */}
                 <div className="flex flex-col gap-2 bg-teal-950/10 border border-teal-500/10 p-5 rounded-2xl backdrop-blur-xl">
-                  <div className="flex items-center gap-3.5">
-                    <span className="text-lg">⏱️</span>
-                    <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
-                      Personal Completion Deadline
-                    </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3.5">
+                      <span className="text-lg">⏱️</span>
+                      <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                        Personal Completion Deadline
+                      </p>
+                    </div>
+                    <button
+                      onClick={() =>
+                        setOpenCalendar((c) => (c === 'goal' ? null : 'goal'))
+                      }
+                      className={calBtn(openCalendar === 'goal')}
+                      title="Toggle goal calendar"
+                      aria-label="Toggle goal calendar"
+                    >
+                      📆
+                    </button>
                   </div>
                   <p className="text-[11px] text-slate-400 pl-0.5">
                     When I want to complete this by
                   </p>
 
-                  {/* Selected value display */}
-                  <div className="px-3 py-2 rounded-xl bg-[#060c12] border border-teal-900/40 text-teal-200 text-sm font-semibold flex items-center justify-between">
-                    <span>
-                      {selectedApp.personal_completion_deadline
-                        ? formatLong(selectedApp.personal_completion_deadline)
-                        : 'Pick a date'}
-                    </span>
-                    <span className="text-teal-600">📆</span>
+                  <div className="px-3 py-2 rounded-xl bg-[#060c12] border border-teal-900/40 text-teal-200 text-sm font-semibold">
+                    {selectedApp.personal_completion_deadline
+                      ? formatLong(selectedApp.personal_completion_deadline)
+                      : 'Pick a date'}
                   </div>
 
-                  {/* Inline calendar — capped at the application deadline */}
-                  <Calendar
-                    value={selectedApp.personal_completion_deadline}
-                    max={selectedApp.application_deadline}
-                    onSelect={handleDateChange}
-                  />
+                  {openCalendar === 'goal' && (
+                    <Calendar
+                      value={selectedApp.personal_completion_deadline}
+                      max={selectedApp.application_deadline}
+                      onSelect={handleGoalChange}
+                    />
+                  )}
 
                   <p className="text-[10px] text-teal-700/70 pl-1">
                     Goal date is capped at the official closing date.
                   </p>
+                </div>
+
+                {/* KEY TASKS */}
+                <div className="flex flex-col gap-3 bg-teal-950/10 border border-teal-500/10 p-5 rounded-2xl backdrop-blur-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3.5">
+                      <span className="text-lg">✅</span>
+                      <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                        Key Tasks
+                      </p>
+                    </div>
+                    <span className="text-xs font-bold text-teal-300">
+                      {doneCount}/{tasks.length} completed
+                    </span>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="h-1.5 w-full rounded-full bg-[#060c12] overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-400 transition-all"
+                      style={{
+                        width: `${
+                          tasks.length
+                            ? Math.round((doneCount / tasks.length) * 100)
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+
+                  <ul className="space-y-1.5">
+                    {tasks.map((task) => (
+                      <li
+                        key={task.id}
+                        className="group flex items-center gap-2.5 text-sm"
+                      >
+                        <button
+                          onClick={() => toggleTask(selectedApp.id, task.id)}
+                          className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center text-[9px] font-black transition ${
+                            task.done
+                              ? 'bg-teal-500 border-teal-400 text-[#04121a]'
+                              : 'border-teal-700/50 text-transparent hover:border-teal-400'
+                          }`}
+                          aria-label={task.done ? 'Mark incomplete' : 'Mark complete'}
+                        >
+                          ✓
+                        </button>
+                        <span
+                          className={`flex-1 ${
+                            task.done
+                              ? 'line-through text-slate-600'
+                              : 'text-slate-300'
+                          }`}
+                        >
+                          {task.text}
+                        </span>
+                        <button
+                          onClick={() => removeTask(selectedApp.id, task.id)}
+                          className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-rose-400 text-xs transition"
+                          aria-label="Delete task"
+                        >
+                          ✕
+                        </button>
+                      </li>
+                    ))}
+                    {tasks.length === 0 && (
+                      <li className="text-xs text-slate-600 italic">
+                        No tasks yet — add one below.
+                      </li>
+                    )}
+                  </ul>
+
+                  {/* Add task */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      value={newTaskText}
+                      onChange={(e) => setNewTaskText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleAddTask();
+                      }}
+                      placeholder="Add a task..."
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-[#060c12] border border-teal-900/40 text-teal-100 text-xs focus:outline-none focus:border-teal-500/50"
+                    />
+                    <button
+                      onClick={handleAddTask}
+                      className="px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-semibold hover:bg-teal-500/20 transition"
+                    >
+                      Add
+                    </button>
+                  </div>
                 </div>
               </>
             ) : (
