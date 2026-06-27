@@ -30,7 +30,7 @@ function normalizePayload(body) {
   const base = {
     title: extracted.title || 'Untitled application',
     organization_name: extracted.company || extracted.organization || 'Unknown',
-    category: category || 'career',
+    category: (category || 'career').trim().toLowerCase(),
     location: extracted.location || 'Remote',
     status: extracted.status || 'Saved',
     priority: extracted.priority || 'Medium Priority',

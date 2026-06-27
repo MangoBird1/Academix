@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 
-// A single pill-style dropdown selector. Shows the current value and, when
-// opened, lists the available options plus an inline input to add a custom one.
-function MetadataSelector({ icon, label, value, options, onSelect, onAddOption }) {
+// A single pill-style dropdown selector. The label now lives OUTSIDE the pill
+// (rendered by <FieldGroup />), so the pill only shows the current value plus an
+// inline input to add a custom option.
+function MetadataSelector({ icon, value, options, onSelect, onAddOption }) {
   const [open, setOpen] = useState(false);
   const [custom, setCustom] = useState('');
 
@@ -23,15 +24,14 @@ function MetadataSelector({ icon, label, value, options, onSelect, onAddOption }
   };
 
   return (
-    <div className="relative">
+    <div className="relative inline-block">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center gap-1.5 rounded-full bg-teal-950/40 border border-teal-500/20 px-3 py-1 text-[11px] font-semibold text-teal-300 hover:bg-teal-900/40 transition"
+        className="inline-flex items-center gap-1.5 rounded-full bg-teal-950/40 border border-teal-500/20 px-3 py-1 text-[11px] font-semibold text-teal-200 hover:bg-teal-900/40 transition"
       >
-        <span className="text-[10px] leading-none">{icon}</span>
-        <span className="text-teal-600/80">{label}:</span>
-        <span className="text-teal-200">{value || 'Set'}</span>
+        {icon ? <span className="text-[10px] leading-none">{icon}</span> : null}
+        <span>{value || 'Set'}</span>
         <span className="text-[8px] text-teal-500/80">▼</span>
       </button>
 
@@ -85,17 +85,30 @@ function MetadataSelector({ icon, label, value, options, onSelect, onAddOption }
   );
 }
 
+// Plain-text label header with its standalone selector stacked underneath.
+function FieldGroup({ label, children }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+        {label}:
+      </span>
+      {children}
+    </div>
+  );
+}
+
 export const StatusSelector = (props) => (
-  <MetadataSelector icon="🔖" label="Status" {...props} />
+  <MetadataSelector icon="🔖" {...props} />
 );
 export const PrioritySelector = (props) => (
-  <MetadataSelector icon="⚡" label="Priority" {...props} />
+  <MetadataSelector icon="⚡" {...props} />
 );
 export const ApplicationMethodSelector = (props) => (
-  <MetadataSelector icon="🌐" label="Method" {...props} />
+  <MetadataSelector icon="🌐" {...props} />
 );
 
-// Vertically stacked metadata section rendered under the company name.
+// Vertically stacked metadata section rendered under the company name. Each
+// field is a plain-text header followed by its standalone selector.
 export default function MetadataSection({
   status,
   priority,
@@ -107,25 +120,33 @@ export default function MetadataSection({
   onAddOption,
 }) {
   return (
-    <div className="flex flex-col gap-1 items-start">
-      <StatusSelector
-        value={status}
-        options={statusOptions}
-        onSelect={(v) => onChange('status', v)}
-        onAddOption={(v) => onAddOption('status', v)}
-      />
-      <PrioritySelector
-        value={priority}
-        options={priorityOptions}
-        onSelect={(v) => onChange('priority', v)}
-        onAddOption={(v) => onAddOption('priority', v)}
-      />
-      <ApplicationMethodSelector
-        value={applicationMethod}
-        options={applicationMethodOptions}
-        onSelect={(v) => onChange('applicationMethod', v)}
-        onAddOption={(v) => onAddOption('applicationMethod', v)}
-      />
+    <div className="flex flex-col gap-3">
+      <FieldGroup label="Status">
+        <StatusSelector
+          value={status}
+          options={statusOptions}
+          onSelect={(v) => onChange('status', v)}
+          onAddOption={(v) => onAddOption('status', v)}
+        />
+      </FieldGroup>
+
+      <FieldGroup label="Priority">
+        <PrioritySelector
+          value={priority}
+          options={priorityOptions}
+          onSelect={(v) => onChange('priority', v)}
+          onAddOption={(v) => onAddOption('priority', v)}
+        />
+      </FieldGroup>
+
+      <FieldGroup label="Application Method">
+        <ApplicationMethodSelector
+          value={applicationMethod}
+          options={applicationMethodOptions}
+          onSelect={(v) => onChange('applicationMethod', v)}
+          onAddOption={(v) => onAddOption('applicationMethod', v)}
+        />
+      </FieldGroup>
     </div>
   );
 }

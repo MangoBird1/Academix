@@ -20,17 +20,18 @@ const formatLong = (iso) => {
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
+// Canonicalize any user-typed category to lowercase for storage/comparison.
+const normalizeCategory = (cat) => (cat || '').trim().toLowerCase();
+
 const categoryTagStyles = (cat) => {
-  if (cat === 'career') return 'bg-cyan-950/60 text-cyan-400 border border-cyan-500/20';
-  if (cat === 'education') return 'bg-purple-950/60 text-purple-400 border border-purple-500/20';
+  const c = normalizeCategory(cat);
+  if (c === 'career') return 'bg-cyan-950/60 text-cyan-400 border border-cyan-500/20';
+  if (c === 'education') return 'bg-purple-950/60 text-purple-400 border border-purple-500/20';
   return 'bg-teal-950/60 text-teal-300 border border-teal-500/20';
 };
 
-const categoryTagLabel = (cat) => {
-  if (cat === 'career') return 'Job';
-  if (cat === 'education') return 'Uni';
-  return cat || 'Other';
-};
+// Categories are stored lowercase but always shown UPPERCASE.
+const categoryTagLabel = (cat) => normalizeCategory(cat).toUpperCase() || 'OTHER';
 
 // Default user-customizable option lists (persisted to localStorage).
 const DEFAULT_STATUS_OPTIONS = ['Saved', 'Applied', 'Interviewing', 'Offer', 'Rejected'];
@@ -158,13 +159,17 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     null;
   const selectedApp = applications.find((app) => app.id === resolvedActiveId);
 
-  const categories = Array.from(
-    new Set(applications.map((a) => a.category).filter(Boolean))
+  // Lowercase + duplicate-proof list of categories present in the data.
+  const existingCategories = Array.from(
+    new Set(applications.map((a) => normalizeCategory(a.category)).filter(Boolean))
   );
 
   const visibleApplications = applications
     .filter((app) => {
-      if (categoryFilter !== 'all' && app.category !== categoryFilter) {
+      if (
+        categoryFilter !== 'all' &&
+        normalizeCategory(app.category) !== categoryFilter
+      ) {
         return false;
       }
       if (!search.trim()) return true;
@@ -392,14 +397,14 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="bg-transparent font-bold text-teal-400 cursor-pointer focus:outline-none hover:text-teal-300 transition capitalize"
+                className="bg-transparent font-bold text-teal-400 cursor-pointer focus:outline-none hover:text-teal-300 transition"
               >
                 <option value="all" className="bg-[#0a141d]">
-                  All categories
+                  ALL CATEGORIES
                 </option>
-                {categories.map((cat) => (
+                {existingCategories.map((cat) => (
                   <option key={cat} value={cat} className="bg-[#0a141d]">
-                    {cat}
+                    {cat.toUpperCase()}
                   </option>
                 ))}
               </select>
@@ -656,10 +661,12 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                         Category / Tag
                       </p>
                       <input
-                        value={selectedApp.category || ''}
-                        onChange={(e) => patch({ category: e.target.value })}
-                        placeholder="e.g. career, education, scholarship..."
-                        className="w-full bg-transparent text-sm text-slate-200 font-medium focus:outline-none focus:bg-[#060c12]/60 rounded px-1 -ml-1 transition"
+                        value={(selectedApp.category || '').toUpperCase()}
+                        onChange={(e) =>
+                          patch({ category: normalizeCategory(e.target.value) })
+                        }
+                        placeholder="e.g. CAREER, EDUCATION, SCHOLARSHIP..."
+                        className="w-full bg-transparent text-sm text-slate-200 font-medium uppercase focus:outline-none focus:bg-[#060c12]/60 rounded px-1 -ml-1 transition"
                       />
                     </div>
                   </div>
