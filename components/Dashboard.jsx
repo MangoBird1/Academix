@@ -594,9 +594,6 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                 >
                   Personal Goal Deadline
                 </option>
-                <option value="category" className="bg-[#0a141d]">
-                  Category
-                </option>
               </select>
             </div>
             <div className="flex items-center justify-between text-xs text-teal-600/80 font-medium px-1">
