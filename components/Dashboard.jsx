@@ -15,6 +15,7 @@ import {
   Selector,
   titleCase,
 } from '@/components/MetadataSection';
+import { normalizeLocation } from '@/lib/locationFormat';
 
 const formatLong = (iso) => {
   if (!iso) return '—';
@@ -60,9 +61,6 @@ const PRESET_LOCATIONS = [
   'berlin, de',
   'toronto, ca',
 ];
-
-// Locations are stored lowercase and shown in Title Case.
-const normalizeLocation = (loc) => (loc || '').trim().toLowerCase();
 
 const FOLLOWUP_METHODS = ['Email', 'Portal', 'Recruiter', 'Other'];
 const OUTCOME_OPTIONS = ['Submitted', 'Interviewing', 'Offer', 'Rejected', 'Withdrew'];
@@ -251,21 +249,26 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
   // Categories present in the data (lowercase, duplicate-proof) for the filter.
   const existingCategories = Array.from(
     new Set(applications.map((a) => normalizeCategory(a.category)).filter(Boolean))
-  );
+  ).sort((a, b) => a.localeCompare(b));
   // Selectable category options = presets + custom + anything already in data.
   const categoryOptions = Array.from(
     new Set([
       ...userDefinedCategories.map((c) => normalizeCategory(c)),
       ...existingCategories,
     ])
-  ).filter(Boolean);
-  // Selectable location options = presets + custom + anything already in data.
+  )
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+  // Selectable location options = presets + custom + anything already in data,
+  // all normalized to the canonical "city, country" form and alphabetized.
   const locationOptions = Array.from(
     new Set([
       ...userDefinedLocations.map((l) => normalizeLocation(l)),
       ...applications.map((a) => normalizeLocation(a.location)).filter(Boolean),
     ])
-  ).filter(Boolean);
+  )
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
 
   const visibleApplications = applications
     .filter((app) => {
@@ -343,10 +346,11 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
       title: 'New Application',
       organization_name: 'Untitled organization',
       category: 'career',
-      location: 'Remote',
+      location: 'remote',
       status: 'Saved',
       priority: 'Medium Priority',
       applicationMethod: 'Company Website',
+      org_description: '',
       description: '',
       source_url: '',
       application_deadline: deadline,
@@ -382,6 +386,12 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
   // ---- contacts ------------------------------------------------------------
   const isEducation =
     normalizeCategory(selectedApp?.category) === 'education';
+  const isCareer = normalizeCategory(selectedApp?.category) === 'career';
+  const descriptionLabel = isEducation
+    ? 'Program Description'
+    : isCareer
+    ? 'Job Description'
+    : 'Description';
   const contactFields = isEducation ? EDUCATION_CONTACTS : CAREER_CONTACTS;
   const patchContact = (key, value) =>
     patch({ contacts: { ...(selectedApp?.contacts || {}), [key]: value } });
@@ -695,29 +705,43 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     placeholder="Organization / company"
                     className="w-full bg-transparent text-md text-teal-400/80 font-medium focus:outline-none focus:bg-[#060c12]/60 rounded-lg px-1 -ml-1 transition"
                   />
+                  {/* Optional organization description, under the org name */}
+                  <textarea
+                    value={selectedApp.org_description || ''}
+                    onChange={(e) => patch({ org_description: e.target.value })}
+                    placeholder="Organization description (optional)"
+                    className={`${resizableArea} h-12 min-h-[2.5rem] !rounded-xl text-xs text-slate-400 mt-1`}
+                  />
                 </div>
 
-                {/* Status / Priority / Application Method (label + selector) */}
-                <div className="flex flex-col gap-3">
-                  <FieldGroup label="Status">
+                {/* Status / Priority / Application Method — inline label + button */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-bold text-teal-500 uppercase tracking-widest w-40 shrink-0">
+                      Status:
+                    </span>
                     <StatusSelector
                       value={selectedApp.status}
                       options={userDefinedStatusOptions}
                       onSelect={(v) => handleMetaChange('status', v)}
                       onAddOption={(v) => handleAddOption('status', v)}
                     />
-                  </FieldGroup>
-
-                  <FieldGroup label="Priority">
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-bold text-teal-500 uppercase tracking-widest w-40 shrink-0">
+                      Priority:
+                    </span>
                     <PrioritySelector
                       value={selectedApp.priority}
                       options={userDefinedPriorityOptions}
                       onSelect={(v) => handleMetaChange('priority', v)}
                       onAddOption={(v) => handleAddOption('priority', v)}
                     />
-                  </FieldGroup>
-
-                  <FieldGroup label="Application Method">
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-bold text-teal-500 uppercase tracking-widest w-40 shrink-0">
+                      Application Method:
+                    </span>
                     <ApplicationMethodSelector
                       value={selectedApp.applicationMethod}
                       options={userDefinedApplicationMethods}
@@ -726,13 +750,13 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                         handleAddOption('applicationMethod', v)
                       }
                     />
-                  </FieldGroup>
+                  </div>
                 </div>
 
-                {/* Description (resizable) */}
+                {/* Description (resizable) — label adapts to category */}
                 <div className="space-y-2">
                   <span className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
-                    Description
+                    {descriptionLabel}
                   </span>
                   <textarea
                     value={selectedApp.description || ''}
@@ -1055,18 +1079,36 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                 <CollapsibleSection title="Follow-up" defaultOpen={false}>
                   <div className="flex flex-col gap-3">
                     <FieldGroup label="Follow-up date">
-                      <input
-                        type="date"
-                        value={selectedApp.follow_up_date || ''}
-                        onChange={(e) =>
-                          patch({ follow_up_date: e.target.value })
-                        }
-                        className={`px-3 py-1.5 rounded-lg bg-[#060c12] text-teal-200 text-xs focus:outline-none transition ${
-                          selectedApp.follow_up_reminder
-                            ? 'border border-teal-400/60 ring-1 ring-teal-400/40'
-                            : 'border border-teal-900/40 focus:border-teal-500/50'
-                        }`}
-                      />
+                      <div>
+                        <button
+                          onClick={() =>
+                            setOpenCalendar((c) =>
+                              c === 'followup' ? null : 'followup'
+                            )
+                          }
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#060c12] text-teal-200 text-xs transition ${
+                            selectedApp.follow_up_reminder
+                              ? 'border border-teal-400/60 ring-1 ring-teal-400/40'
+                              : 'border border-teal-900/40 hover:border-teal-500/50'
+                          }`}
+                        >
+                          <span>📆</span>
+                          {selectedApp.follow_up_date
+                            ? formatLong(selectedApp.follow_up_date)
+                            : 'Pick a date'}
+                        </button>
+                        {openCalendar === 'followup' && (
+                          <div className="mt-2">
+                            <Calendar
+                              value={selectedApp.follow_up_date}
+                              onSelect={(d) => {
+                                patch({ follow_up_date: d });
+                                setOpenCalendar(null);
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
                     </FieldGroup>
                     <FieldGroup label="Follow-up method">
                       <Selector
@@ -1239,25 +1281,41 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                         )
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        value={newTimelineLabel}
-                        onChange={(e) => setNewTimelineLabel(e.target.value)}
-                        placeholder="Event"
-                        className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-[#060c12] border border-teal-900/40 text-teal-100 text-xs focus:outline-none focus:border-teal-500/50"
-                      />
-                      <input
-                        type="date"
-                        value={newTimelineDate}
-                        onChange={(e) => setNewTimelineDate(e.target.value)}
-                        className="px-2 py-1.5 rounded-lg bg-[#060c12] border border-teal-900/40 text-teal-200 text-xs focus:outline-none focus:border-teal-500/50"
-                      />
-                      <button
-                        onClick={addTimelineEvent}
-                        className="px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-semibold hover:bg-teal-500/20 transition"
-                      >
-                        Add
-                      </button>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          value={newTimelineLabel}
+                          onChange={(e) => setNewTimelineLabel(e.target.value)}
+                          placeholder="Event"
+                          className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-[#060c12] border border-teal-900/40 text-teal-100 text-xs focus:outline-none focus:border-teal-500/50"
+                        />
+                        <button
+                          onClick={() =>
+                            setOpenCalendar((c) =>
+                              c === 'timeline' ? null : 'timeline'
+                            )
+                          }
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#060c12] border border-teal-900/40 text-teal-200 text-xs hover:border-teal-500/50 transition"
+                        >
+                          <span>📆</span>
+                          {formatLong(newTimelineDate)}
+                        </button>
+                        <button
+                          onClick={addTimelineEvent}
+                          className="px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-semibold hover:bg-teal-500/20 transition"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      {openCalendar === 'timeline' && (
+                        <Calendar
+                          value={newTimelineDate}
+                          onSelect={(d) => {
+                            setNewTimelineDate(d);
+                            setOpenCalendar(null);
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
                 </CollapsibleSection>

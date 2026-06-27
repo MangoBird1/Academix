@@ -1,19 +1,20 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { standardizeLocation, normalizeLocation } from '@/lib/locationFormat';
 
 const identity = (v) => v;
 
 // A pill-style dropdown selector with an inline input. When `predictive` is on,
 // typing fuzzily filters the options (case-insensitive substring) so partial
 // text predicts existing entries; otherwise the input only adds a custom label.
-// `format` controls how stored values are displayed (e.g. Title Case), while
-// `normalize` controls the canonical stored form (e.g. lowercase).
+// `format` controls how stored values are displayed; `normalize` controls the
+// canonical stored form. `sorted` alphabetizes the option list.
 //
-// The dropdown is rendered in a portal with fixed positioning anchored to the
-// trigger button, so it always overlays surrounding panes/cards (no z-index or
-// overflow-clipping issues) and stays aligned under the input.
+// The dropdown renders in a portal anchored to the trigger. It auto-positions
+// above or below based on available viewport space, follows the input while the
+// pane scrolls, never falls off-screen, and overlays sidebar content (z-[1000]).
 function MetadataSelector({
   icon,
   value,
@@ -21,6 +22,7 @@ function MetadataSelector({
   onSelect,
   onAddOption,
   predictive = false,
+  sorted = false,
   format = identity,
   normalize = identity,
 }) {
@@ -28,6 +30,7 @@ function MetadataSelector({
   const [text, setText] = useState('');
   const [pos, setPos] = useState(null);
   const btnRef = useRef(null);
+  const menuRef = useRef(null);
 
   const allOptions =
     value && !options.some((o) => normalize(o) === normalize(value))
@@ -35,17 +38,59 @@ function MetadataSelector({
       : options;
 
   const query = normalize(text.trim());
-  const filtered =
+  let filtered =
     predictive && query
       ? allOptions.filter((o) => normalize(o).includes(query))
       : allOptions;
+  if (sorted) {
+    filtered = [...filtered].sort((a, b) => format(a).localeCompare(format(b)));
+  }
+
+  const computePos = () => {
+    const el = btnRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const minWidth = Math.max(r.width, 208);
+    const left = Math.max(8, Math.min(r.left, vw - minWidth - 8));
+    const estimate = 300;
+    const spaceBelow = vh - r.bottom - 8;
+    const spaceAbove = r.top - 8;
+    const placeAbove = spaceBelow < estimate && spaceAbove > spaceBelow;
+    const maxHeight = Math.max(160, Math.floor(placeAbove ? spaceAbove : spaceBelow));
+    setPos(
+      placeAbove
+        ? { left, minWidth, bottom: vh - r.top + 4, maxHeight }
+        : { left, minWidth, top: r.bottom + 4, maxHeight }
+    );
+  };
 
   const openMenu = () => {
-    const r = btnRef.current?.getBoundingClientRect();
-    if (r) setPos({ top: r.bottom + 4, left: r.left, width: r.width });
+    computePos();
     setOpen(true);
   };
   const toggle = () => (open ? setOpen(false) : openMenu());
+
+  // While open: reposition on scroll/resize (so it follows the input and the
+  // pane can still scroll), and close on outside mousedown.
+  useEffect(() => {
+    if (!open) return undefined;
+    const reflow = () => computePos();
+    const onDown = (e) => {
+      if (menuRef.current?.contains(e.target)) return;
+      if (btnRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    window.addEventListener('scroll', reflow, true);
+    window.addEventListener('resize', reflow);
+    document.addEventListener('mousedown', onDown);
+    return () => {
+      window.removeEventListener('scroll', reflow, true);
+      window.removeEventListener('resize', reflow);
+      document.removeEventListener('mousedown', onDown);
+    };
+  }, [open]);
 
   const commit = () => {
     const raw = text.trim();
@@ -65,70 +110,63 @@ function MetadataSelector({
   const menu =
     open && pos && typeof document !== 'undefined'
       ? createPortal(
-          <>
-            {/* click-outside catcher */}
-            <div
-              className="fixed inset-0 z-[999]"
-              onClick={() => setOpen(false)}
-            />
-            <div
-              style={{
-                position: 'fixed',
-                top: pos.top,
-                left: pos.left,
-                minWidth: Math.max(pos.width || 0, 208),
-              }}
-              className="z-[1000] rounded-xl border border-teal-500/20 bg-[#0a141d]/95 backdrop-blur-md shadow-xl shadow-black/40 p-1.5"
-            >
-              <div className="flex items-center gap-1 mb-1 pb-1.5 border-b border-teal-900/40">
-                <input
-                  autoFocus
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') commit();
-                  }}
-                  placeholder={
-                    predictive ? 'Search or add...' : 'Add custom label...'
-                  }
-                  className="flex-1 min-w-0 px-2 py-1 rounded-md bg-[#060c12] border border-teal-900/40 text-[11px] text-teal-100 placeholder-teal-800/50 focus:outline-none focus:border-teal-500/50"
-                />
-                <button
-                  type="button"
-                  onClick={commit}
-                  className="px-2 py-1 rounded-md bg-teal-500/10 border border-teal-500/30 text-teal-300 text-[11px] font-bold hover:bg-teal-500/20 transition"
-                  aria-label="Add or select"
-                >
-                  +
-                </button>
-              </div>
-              <div className="max-h-44 overflow-y-auto space-y-0.5">
-                {filtered.map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => {
-                      onSelect(opt);
-                      setText('');
-                      setOpen(false);
-                    }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] transition ${
-                      normalize(opt) === normalize(value)
-                        ? 'bg-teal-500/15 text-teal-200'
-                        : 'text-slate-300 hover:bg-teal-900/40'
-                    }`}
-                  >
-                    {format(opt)}
-                  </button>
-                ))}
-                {filtered.length === 0 && (
-                  <div className="px-2.5 py-1.5 text-[11px] text-slate-500 italic">
-                    Press + to add “{text.trim()}”
-                  </div>
-                )}
-              </div>
+          <div
+            ref={menuRef}
+            style={{
+              position: 'fixed',
+              left: pos.left,
+              minWidth: pos.minWidth,
+              maxHeight: pos.maxHeight,
+              ...(pos.top !== undefined ? { top: pos.top } : { bottom: pos.bottom }),
+            }}
+            className="z-[1000] flex flex-col rounded-xl border border-teal-500/20 bg-[#0a141d]/95 backdrop-blur-md shadow-xl shadow-black/40 p-1.5 overflow-hidden"
+          >
+            <div className="flex items-center gap-1 mb-1 pb-1.5 border-b border-teal-900/40 shrink-0">
+              <input
+                autoFocus
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') commit();
+                }}
+                placeholder={predictive ? 'Search or add...' : 'Add custom label...'}
+                className="flex-1 min-w-0 px-2 py-1 rounded-md bg-[#060c12] border border-teal-900/40 text-[11px] text-teal-100 placeholder-teal-800/50 focus:outline-none focus:border-teal-500/50"
+              />
+              <button
+                type="button"
+                onClick={commit}
+                className="px-2 py-1 rounded-md bg-teal-500/10 border border-teal-500/30 text-teal-300 text-[11px] font-bold hover:bg-teal-500/20 transition"
+                aria-label="Add or select"
+              >
+                +
+              </button>
             </div>
-          </>,
+            <div className="overflow-y-auto space-y-0.5">
+              {filtered.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => {
+                    onSelect(opt);
+                    setText('');
+                    setOpen(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] transition ${
+                    normalize(opt) === normalize(value)
+                      ? 'bg-teal-500/15 text-teal-200'
+                      : 'text-slate-300 hover:bg-teal-900/40'
+                  }`}
+                >
+                  {format(opt)}
+                </button>
+              ))}
+              {filtered.length === 0 && (
+                <div className="px-2.5 py-1.5 text-[11px] text-slate-500 italic">
+                  Press + to add “{text.trim()}”
+                </div>
+              )}
+            </div>
+          </div>,
           document.body
         )
       : null;
@@ -170,11 +208,6 @@ const titleCase = (s) =>
     .join(' ');
 const lower = (s) => (s || '').trim().toLowerCase();
 
-// Title Case + always-uppercase region codes inside parentheses.
-//   "remote (eu)" -> "Remote (EU)"  /  "toronto (ca)" -> "Toronto (CA)"
-const titleCaseLocation = (s) =>
-  titleCase(s).replace(/\(([^)]+)\)/g, (_, inner) => `(${inner.toUpperCase()})`);
-
 export const StatusSelector = (props) => (
   <MetadataSelector icon="🔖" {...props} />
 );
@@ -184,28 +217,30 @@ export const PrioritySelector = (props) => (
 export const ApplicationMethodSelector = (props) => (
   <MetadataSelector icon="🌐" {...props} />
 );
-// Category: stored lowercase, shown Title Case, fuzzy/predictive matching.
+// Category: stored lowercase, shown Title Case, fuzzy + alphabetized.
 export const CategorySelector = (props) => (
   <MetadataSelector
     icon="🏷️"
     predictive
+    sorted
     format={titleCase}
     normalize={lower}
     {...props}
   />
 );
-// Location: freeform autocomplete — stored lowercase, shown Title Case with
-// uppercased parenthetical region codes, case-insensitive fuzzy matching.
+// Location: freeform autocomplete — stored normalized, shown as friendly
+// "City, Country", fuzzy + alphabetized.
 export const LocationSelector = (props) => (
   <MetadataSelector
     icon="📍"
     predictive
-    format={titleCaseLocation}
-    normalize={lower}
+    sorted
+    format={standardizeLocation}
+    normalize={normalizeLocation}
     {...props}
   />
 );
 // Generic selector (fixed option lists, e.g. follow-up method, outcome).
 export const Selector = (props) => <MetadataSelector {...props} />;
 
-export { titleCase, titleCaseLocation };
+export { titleCase };

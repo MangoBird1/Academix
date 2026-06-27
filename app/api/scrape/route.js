@@ -35,6 +35,7 @@ function normalizePayload(body) {
     status: extracted.status || 'Saved',
     priority: extracted.priority || 'Medium Priority',
     applicationMethod: extracted.application_method || 'Company Website',
+    org_description: extracted.org_description || extracted.organization_description || '',
     description: extracted.description || extracted.summary || '',
     source_url: source_url || '',
     application_deadline: extracted.deadline || '',
