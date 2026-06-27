@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useApplications } from '@/lib/useApplications';
 import Calendar from '@/components/Calendar';
+import StatusBar from '@/components/StatusBar';
 
 const formatLong = (iso) => {
   if (!iso) return '—';
@@ -364,6 +365,13 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     className="w-full bg-transparent text-md text-teal-400/80 font-medium focus:outline-none focus:bg-[#060c12]/60 rounded-lg px-1 -ml-1 transition"
                   />
                 </div>
+
+                {/* Status / priority / application method pills */}
+                <StatusBar
+                  status={selectedApp.status}
+                  priority={selectedApp.priority}
+                  applicationMethod={selectedApp.application_method}
+                />
 
                 {/* Description (between company name and URL) */}
                 <div className="space-y-2">
