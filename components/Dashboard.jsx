@@ -3,8 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useApplications } from '@/lib/useApplications';
 import Calendar from '@/components/Calendar';
-import MetadataSection from '@/components/MetadataSection';
 import VerticalDivider, { startColumnDrag } from '@/components/VerticalDivider';
+import {
+  FieldGroup,
+  StatusSelector,
+  PrioritySelector,
+  ApplicationMethodSelector,
+  CategorySelector,
+  titleCase,
+} from '@/components/MetadataSection';
 
 const formatLong = (iso) => {
   if (!iso) return '—';
@@ -30,13 +37,14 @@ const categoryTagStyles = (cat) => {
   return 'bg-teal-950/60 text-teal-300 border border-teal-500/20';
 };
 
-// Categories are stored lowercase but always shown UPPERCASE.
-const categoryTagLabel = (cat) => normalizeCategory(cat).toUpperCase() || 'OTHER';
+// Categories are stored lowercase but shown in Title Case.
+const categoryTagLabel = (cat) => titleCase(normalizeCategory(cat)) || 'Other';
 
 // Default user-customizable option lists (persisted to localStorage).
 const DEFAULT_STATUS_OPTIONS = ['Saved', 'Applied', 'Interviewing', 'Offer', 'Rejected'];
 const DEFAULT_PRIORITY_OPTIONS = ['Low Priority', 'Medium Priority', 'High Priority'];
 const DEFAULT_METHOD_OPTIONS = ['Company Website', 'LinkedIn', 'Referral', 'Email', 'Job Board'];
+const PRESET_CATEGORIES = ['career', 'education', 'other'];
 
 // Layout sizing constraints (px).
 const SIDEBAR_MIN = 200;
@@ -53,6 +61,7 @@ const LS = {
   status: 'academix:userDefinedStatusOptions',
   priority: 'academix:userDefinedPriorityOptions',
   methods: 'academix:userDefinedApplicationMethods',
+  categories: 'academix:userDefinedCategories',
 };
 
 export default function AcademixTealDashboard({ initialApplications = [] }) {
@@ -87,6 +96,8 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     useState(DEFAULT_PRIORITY_OPTIONS);
   const [userDefinedApplicationMethods, setUserDefinedApplicationMethods] =
     useState(DEFAULT_METHOD_OPTIONS);
+  const [userDefinedCategories, setUserDefinedCategories] =
+    useState(PRESET_CATEGORIES);
 
   // Hydrate persisted layout + option lists once on the client.
   useEffect(() => {
@@ -108,12 +119,12 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
       arr(LS.status, setUserDefinedStatusOptions);
       arr(LS.priority, setUserDefinedPriorityOptions);
       arr(LS.methods, setUserDefinedApplicationMethods);
+      arr(LS.categories, setUserDefinedCategories);
     } catch {
       /* ignore storage errors */
     }
   }, []);
 
-  // Persist each piece of layout/option state when it changes.
   const persist = (key, value) => {
     try {
       localStorage.setItem(key, value);
@@ -136,6 +147,10 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     () => persist(LS.methods, JSON.stringify(userDefinedApplicationMethods)),
     [userDefinedApplicationMethods]
   );
+  useEffect(
+    () => persist(LS.categories, JSON.stringify(userDefinedCategories)),
+    [userDefinedCategories]
+  );
 
   // --- Resize handlers (mirror the same incremental-delta logic) ----------
   const resizeSidebar = useCallback(
@@ -152,17 +167,23 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     []
   );
 
-  // Keep a valid active selection even as the live list changes.
   const resolvedActiveId =
     applications.find((app) => app.id === activeId)?.id ||
     applications[0]?.id ||
     null;
   const selectedApp = applications.find((app) => app.id === resolvedActiveId);
 
-  // Lowercase + duplicate-proof list of categories present in the data.
+  // Categories present in the data (lowercase, duplicate-proof) for the filter.
   const existingCategories = Array.from(
     new Set(applications.map((a) => normalizeCategory(a.category)).filter(Boolean))
   );
+  // Selectable category options = presets + custom + anything already in data.
+  const categoryOptions = Array.from(
+    new Set([
+      ...userDefinedCategories.map((c) => normalizeCategory(c)),
+      ...existingCategories,
+    ])
+  ).filter(Boolean);
 
   const visibleApplications = applications
     .filter((app) => {
@@ -180,7 +201,9 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     })
     .sort((a, b) => {
       if (sortBy === 'category') {
-        return (a.category || '').localeCompare(b.category || '');
+        return normalizeCategory(a.category).localeCompare(
+          normalizeCategory(b.category)
+        );
       }
       return new Date(a[sortBy]) - new Date(b[sortBy]);
     });
@@ -196,10 +219,16 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
   const handleAddOption = (kind, value) => {
     const v = (value || '').trim();
     if (!v) return;
-    const add = (list) => (list.includes(v) ? list : [...list, v]);
-    if (kind === 'status') setUserDefinedStatusOptions(add);
-    else if (kind === 'priority') setUserDefinedPriorityOptions(add);
-    else if (kind === 'applicationMethod') setUserDefinedApplicationMethods(add);
+    const addCI = (list) =>
+      list.some((x) => x.toLowerCase() === v.toLowerCase()) ? list : [...list, v];
+    const addLower = (list) => {
+      const lv = v.toLowerCase();
+      return list.includes(lv) ? list : [...list, lv];
+    };
+    if (kind === 'status') setUserDefinedStatusOptions(addCI);
+    else if (kind === 'priority') setUserDefinedPriorityOptions(addCI);
+    else if (kind === 'applicationMethod') setUserDefinedApplicationMethods(addCI);
+    else if (kind === 'category') setUserDefinedCategories(addLower);
   };
 
   const handleGoalChange = (chosenDate) => {
@@ -260,14 +289,19 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
 
   const paneCard =
     'flex flex-col h-full rounded-2xl border border-teal-500/15 bg-[#0a141d]/50 shadow-xl shadow-black/30 ring-1 ring-inset ring-white/[0.02] overflow-hidden';
-  const editInput =
-    'w-full px-3 py-2 rounded-xl bg-[#060c12]/80 border border-teal-900/30 text-slate-200 text-sm focus:outline-none focus:border-teal-500/50 transition';
+  // Resizable content textareas (drag the bottom-right corner: resize:both).
+  const resizableArea =
+    'w-full max-w-full p-4 rounded-2xl border border-teal-900/30 bg-[#060c12]/80 text-slate-300 text-sm focus:outline-none focus:border-teal-500/50 resize overflow-auto';
+  const smallInput =
+    'w-full px-3 py-1.5 rounded-lg bg-[#060c12]/80 border border-teal-900/40 text-slate-200 text-xs focus:outline-none focus:border-teal-500/50 transition';
   const calBtn = (active) =>
     `h-8 w-8 shrink-0 flex items-center justify-center rounded-lg border text-sm transition ${
       active
         ? 'bg-teal-500/20 border-teal-400/50 text-teal-200'
         : 'bg-teal-950/50 border-teal-500/20 text-teal-400 hover:bg-teal-900'
     }`;
+  const glassCard =
+    'bg-teal-950/10 border border-teal-500/10 p-5 rounded-2xl backdrop-blur-xl';
 
   return (
     <div className="flex h-screen w-screen bg-[#070e14] text-cyan-50 font-sans overflow-hidden select-none">
@@ -393,18 +427,18 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
               </select>
             </div>
             <div className="flex items-center justify-between text-xs text-teal-600/80 font-medium px-1">
-              <span>Category:</span>
+              <span>Filter:</span>
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
                 className="bg-transparent font-bold text-teal-400 cursor-pointer focus:outline-none hover:text-teal-300 transition"
               >
                 <option value="all" className="bg-[#0a141d]">
-                  ALL CATEGORIES
+                  All
                 </option>
                 {existingCategories.map((cat) => (
                   <option key={cat} value={cat} className="bg-[#0a141d]">
-                    {cat.toUpperCase()}
+                    {titleCase(cat)}
                   </option>
                 ))}
               </select>
@@ -430,7 +464,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     </h4>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span
-                        className={`text-[10px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded-md max-w-[80px] truncate ${categoryTagStyles(
+                        className={`text-[10px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded-md max-w-[90px] truncate ${categoryTagStyles(
                           app.category
                         )}`}
                       >
@@ -486,7 +520,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
         <section className={`flex-1 min-w-0 ${paneCard}`}>
           <div className="flex-1 overflow-y-auto p-8 bg-[#0a1520]/20">
             {selectedApp ? (
-              <div className="space-y-6">
+              <div className="space-y-5">
                 {/* Editable title + company */}
                 <div className="space-y-1">
                   <input
@@ -505,19 +539,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                   />
                 </div>
 
-                {/* Vertically stacked editable status metadata */}
-                <MetadataSection
-                  status={selectedApp.status}
-                  priority={selectedApp.priority}
-                  applicationMethod={selectedApp.applicationMethod}
-                  statusOptions={userDefinedStatusOptions}
-                  priorityOptions={userDefinedPriorityOptions}
-                  applicationMethodOptions={userDefinedApplicationMethods}
-                  onChange={handleMetaChange}
-                  onAddOption={handleAddOption}
-                />
-
-                {/* Description (between company name and URL) */}
+                {/* Description (resizable) */}
                 <div className="space-y-2">
                   <span className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
                     Description
@@ -526,11 +548,11 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     value={selectedApp.description || ''}
                     onChange={(e) => patch({ description: e.target.value })}
                     placeholder="Short summary of this opportunity..."
-                    className="w-full h-20 p-4 rounded-2xl border border-teal-900/30 bg-[#060c12]/80 text-slate-300 text-sm focus:outline-none focus:border-teal-500/50 resize-none"
+                    className={`${resizableArea} h-16 min-h-[3rem]`}
                   />
                 </div>
 
-                {/* Editable Source URL */}
+                {/* Editable, resizable Source URL */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between pl-1 pr-0.5">
                     <span className="text-xs font-bold text-teal-500 uppercase tracking-widest">
@@ -547,15 +569,18 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                       </a>
                     ) : null}
                   </div>
-                  <input
+                  <textarea
                     value={selectedApp.source_url || ''}
-                    onChange={(e) => patch({ source_url: e.target.value })}
+                    onChange={(e) =>
+                      patch({ source_url: e.target.value.replace(/\n/g, '') })
+                    }
+                    rows={1}
                     placeholder="https://..."
-                    className={`${editInput} text-cyan-300/80`}
+                    className={`${resizableArea} h-12 min-h-[3rem] !rounded-xl text-cyan-300/80`}
                   />
                 </div>
 
-                {/* AI Dynamic Extractors */}
+                {/* AI Extracted Skills */}
                 <div className="space-y-3 bg-[#0a141d]/30 border border-teal-950/40 p-5 rounded-2xl">
                   <h3 className="text-xs font-bold text-teal-500 uppercase tracking-widest">
                     🛠️ AI Extracted Skills
@@ -588,8 +613,8 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                   </ul>
                 </div>
 
-                {/* AI / Scraping Notes Section */}
-                <div className="space-y-2.5">
+                {/* Core Scraping Notes (resizable) */}
+                <div className="space-y-2">
                   <label className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
                     📝 Core Scraping Notes
                   </label>
@@ -597,12 +622,12 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     value={selectedApp.notes || ''}
                     onChange={(e) => patch({ notes: e.target.value })}
                     placeholder="AI / scraping notes..."
-                    className="w-full h-28 p-4 rounded-2xl border border-teal-900/30 bg-[#060c12]/80 text-slate-300 text-sm focus:outline-none focus:border-teal-500/50 resize-none"
+                    className={`${resizableArea} h-20 min-h-[3.5rem]`}
                   />
                 </div>
 
-                {/* My Notes Section */}
-                <div className="space-y-2.5">
+                {/* My Notes (resizable) */}
+                <div className="space-y-2">
                   <label className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
                     🗒️ My Notes
                   </label>
@@ -610,7 +635,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     value={selectedApp.my_notes || ''}
                     onChange={(e) => patch({ my_notes: e.target.value })}
                     placeholder="Your personal notes, reminders and thoughts..."
-                    className="w-full h-28 p-4 rounded-2xl border border-teal-900/30 bg-[#060c12]/80 text-slate-300 text-sm focus:outline-none focus:border-teal-500/50 resize-none"
+                    className={`${resizableArea} h-20 min-h-[3.5rem]`}
                   />
                 </div>
               </div>
@@ -630,51 +655,72 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
           ariaLabel="Resize metadata pane"
         />
 
-        {/* PANE 3: RIGHT ALIGNED METADATA PANEL */}
+        {/* PANE 3: RIGHT SIDEBAR — Status, Priority, Method, Location,
+            Category, Deadlines, Tasks (in this order) */}
         <section style={{ width: pane3Width }} className={`shrink-0 ${paneCard}`}>
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {selectedApp ? (
               <>
-                {/* LOCATION / CATEGORY / DEADLINE */}
-                <div className="flex flex-col space-y-4 bg-teal-950/10 border border-teal-500/10 p-5 rounded-2xl backdrop-blur-xl">
-                  {/* LOCATION (editable) */}
-                  <div className="flex items-start gap-3.5 border-b border-teal-900/20 pb-3">
-                    <span className="text-lg leading-7">📍</span>
-                    <div className="flex-1">
-                      <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest mb-1">
-                        Location
-                      </p>
-                      <input
-                        value={selectedApp.location || ''}
-                        onChange={(e) => patch({ location: e.target.value })}
-                        placeholder="Location"
-                        className="w-full bg-transparent text-sm text-slate-200 font-medium focus:outline-none focus:bg-[#060c12]/60 rounded px-1 -ml-1 transition"
-                      />
-                    </div>
-                  </div>
+                {/* STATUS / PRIORITY / METHOD / LOCATION / CATEGORY */}
+                <div className={`flex flex-col gap-3 ${glassCard}`}>
+                  <FieldGroup label="Status">
+                    <StatusSelector
+                      value={selectedApp.status}
+                      options={userDefinedStatusOptions}
+                      onSelect={(v) => handleMetaChange('status', v)}
+                      onAddOption={(v) => handleAddOption('status', v)}
+                    />
+                  </FieldGroup>
 
-                  {/* CATEGORY (editable custom tag) */}
-                  <div className="flex items-start gap-3.5 border-b border-teal-900/20 pb-3">
-                    <span className="text-lg leading-7">🏷️</span>
-                    <div className="flex-1">
-                      <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest mb-1">
-                        Category / Tag
-                      </p>
-                      <input
-                        value={(selectedApp.category || '').toUpperCase()}
-                        onChange={(e) =>
-                          patch({ category: normalizeCategory(e.target.value) })
-                        }
-                        placeholder="e.g. CAREER, EDUCATION, SCHOLARSHIP..."
-                        className="w-full bg-transparent text-sm text-slate-200 font-medium uppercase focus:outline-none focus:bg-[#060c12]/60 rounded px-1 -ml-1 transition"
-                      />
-                    </div>
-                  </div>
+                  <FieldGroup label="Priority">
+                    <PrioritySelector
+                      value={selectedApp.priority}
+                      options={userDefinedPriorityOptions}
+                      onSelect={(v) => handleMetaChange('priority', v)}
+                      onAddOption={(v) => handleAddOption('priority', v)}
+                    />
+                  </FieldGroup>
 
-                  {/* APPLICATION DEADLINE (editable via toggle calendar) */}
+                  <FieldGroup label="Application Method">
+                    <ApplicationMethodSelector
+                      value={selectedApp.applicationMethod}
+                      options={userDefinedApplicationMethods}
+                      onSelect={(v) => handleMetaChange('applicationMethod', v)}
+                      onAddOption={(v) =>
+                        handleAddOption('applicationMethod', v)
+                      }
+                    />
+                  </FieldGroup>
+
+                  <FieldGroup label="Location">
+                    <input
+                      value={selectedApp.location || ''}
+                      onChange={(e) => patch({ location: e.target.value })}
+                      placeholder="Location"
+                      className={smallInput}
+                    />
+                  </FieldGroup>
+
+                  <FieldGroup label="Category">
+                    <CategorySelector
+                      value={selectedApp.category}
+                      options={categoryOptions}
+                      onSelect={(v) => handleMetaChange('category', v)}
+                      onAddOption={(v) => handleAddOption('category', v)}
+                    />
+                  </FieldGroup>
+                </div>
+
+                {/* DEADLINES */}
+                <div className={`flex flex-col gap-4 ${glassCard}`}>
+                  <span className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                    Deadlines:
+                  </span>
+
+                  {/* Application deadline (editable via toggle calendar) */}
                   <div>
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-3.5">
+                      <div className="flex items-center gap-3">
                         <span className="text-lg">📅</span>
                         <div>
                           <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
@@ -707,60 +753,57 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                       </div>
                     )}
                   </div>
-                </div>
 
-                {/* PERSONAL COMPLETION DEADLINE (editable via toggle calendar) */}
-                <div className="flex flex-col gap-2 bg-teal-950/10 border border-teal-500/10 p-5 rounded-2xl backdrop-blur-xl">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-3.5">
-                      <span className="text-lg">⏱️</span>
-                      <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
-                        Personal Completion Deadline
-                      </p>
+                  {/* Personal completion deadline (editable via toggle calendar) */}
+                  <div className="border-t border-teal-900/20 pt-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">⏱️</span>
+                        <div>
+                          <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                            Personal Completion Deadline
+                          </p>
+                          <p className="text-sm text-teal-200 font-bold">
+                            {selectedApp.personal_completion_deadline
+                              ? formatLong(
+                                  selectedApp.personal_completion_deadline
+                                )
+                              : 'Pick a date'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          setOpenCalendar((c) => (c === 'goal' ? null : 'goal'))
+                        }
+                        className={calBtn(openCalendar === 'goal')}
+                        title="Toggle goal calendar"
+                        aria-label="Toggle goal calendar"
+                      >
+                        📆
+                      </button>
                     </div>
-                    <button
-                      onClick={() =>
-                        setOpenCalendar((c) => (c === 'goal' ? null : 'goal'))
-                      }
-                      className={calBtn(openCalendar === 'goal')}
-                      title="Toggle goal calendar"
-                      aria-label="Toggle goal calendar"
-                    >
-                      📆
-                    </button>
+                    {openCalendar === 'goal' && (
+                      <div className="mt-3">
+                        <Calendar
+                          value={selectedApp.personal_completion_deadline}
+                          max={selectedApp.application_deadline}
+                          onSelect={handleGoalChange}
+                        />
+                      </div>
+                    )}
+                    <p className="text-[10px] text-teal-700/70 pl-1 mt-2">
+                      Goal date is capped at the official closing date.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-slate-400 pl-0.5">
-                    When I want to complete this by
-                  </p>
-
-                  <div className="px-3 py-2 rounded-xl bg-[#060c12] border border-teal-900/40 text-teal-200 text-sm font-semibold">
-                    {selectedApp.personal_completion_deadline
-                      ? formatLong(selectedApp.personal_completion_deadline)
-                      : 'Pick a date'}
-                  </div>
-
-                  {openCalendar === 'goal' && (
-                    <Calendar
-                      value={selectedApp.personal_completion_deadline}
-                      max={selectedApp.application_deadline}
-                      onSelect={handleGoalChange}
-                    />
-                  )}
-
-                  <p className="text-[10px] text-teal-700/70 pl-1">
-                    Goal date is capped at the official closing date.
-                  </p>
                 </div>
 
-                {/* KEY TASKS */}
-                <div className="flex flex-col gap-3 bg-teal-950/10 border border-teal-500/10 p-5 rounded-2xl backdrop-blur-xl">
+                {/* TASKS */}
+                <div className={`flex flex-col gap-3 ${glassCard}`}>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3.5">
-                      <span className="text-lg">✅</span>
-                      <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
-                        Key Tasks
-                      </p>
-                    </div>
+                    <span className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                      Tasks:
+                    </span>
                     <span className="text-xs font-bold text-teal-300">
                       {doneCount}/{tasks.length} completed
                     </span>
