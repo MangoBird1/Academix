@@ -43,6 +43,15 @@ function normalizePayload(body) {
     notes: extracted.summary || '',
     my_notes: '',
     tasks: [],
+    updated_at: Date.now(),
+    follow_up_date: '',
+    follow_up_method: 'Email',
+    follow_up_reminder: false,
+    contacts: {},
+    custom_skills: [],
+    skill_labels: {},
+    timeline: [],
+    outcome: '',
   };
 
   if (base.category === 'career') {

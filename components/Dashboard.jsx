@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useApplications } from '@/lib/useApplications';
 import Calendar from '@/components/Calendar';
 import VerticalDivider, { startColumnDrag } from '@/components/VerticalDivider';
+import CollapsibleSection from '@/components/CollapsibleSection';
 import {
   FieldGroup,
   StatusSelector,
@@ -11,6 +12,7 @@ import {
   ApplicationMethodSelector,
   CategorySelector,
   LocationSelector,
+  Selector,
   titleCase,
 } from '@/components/MetadataSection';
 
@@ -62,6 +64,52 @@ const PRESET_LOCATIONS = [
 // Locations are stored lowercase and shown in Title Case.
 const normalizeLocation = (loc) => (loc || '').trim().toLowerCase();
 
+const FOLLOWUP_METHODS = ['Email', 'Portal', 'Recruiter', 'Other'];
+const OUTCOME_OPTIONS = ['Submitted', 'Interviewing', 'Offer', 'Rejected', 'Withdrew'];
+const SKILL_LABELS = ['Strong', 'Needs Improvement', 'Add to Resume', 'Add to Portfolio'];
+
+const skillLabelStyle = (label) => {
+  switch (label) {
+    case 'Strong':
+      return 'bg-emerald-950/60 text-emerald-300 border-emerald-500/30';
+    case 'Needs Improvement':
+      return 'bg-amber-950/60 text-amber-300 border-amber-500/30';
+    case 'Add to Resume':
+      return 'bg-cyan-950/60 text-cyan-300 border-cyan-500/30';
+    case 'Add to Portfolio':
+      return 'bg-purple-950/60 text-purple-300 border-purple-500/30';
+    default:
+      return 'bg-teal-950/40 text-teal-300 border-teal-500/20';
+  }
+};
+
+// Contact field definitions per application type.
+const CAREER_CONTACTS = [
+  { key: 'recruiter_name', label: 'Recruiter name' },
+  { key: 'recruiter_email', label: 'Recruiter email' },
+  { key: 'hiring_manager', label: 'Hiring manager' },
+  { key: 'referral_source', label: 'Referral source' },
+];
+const EDUCATION_CONTACTS = [
+  { key: 'admissions_officer', label: 'Region admissions officer' },
+  { key: 'admissions_officer_email', label: 'Admissions officer email' },
+  { key: 'university_contacts', label: 'Potential contacts at university' },
+  { key: 'recommenders', label: 'Recommender(s)' },
+];
+
+const formatDateTime = (ms) => {
+  if (!ms) return '—';
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+};
+
 // Layout sizing constraints (px).
 const SIDEBAR_MIN = 200;
 const SIDEBAR_MAX = 420;
@@ -99,6 +147,9 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
   const [search, setSearch] = useState('');
   const [openCalendar, setOpenCalendar] = useState(null); // 'goal' | 'deadline' | null
   const [newTaskText, setNewTaskText] = useState('');
+  const [newSkillText, setNewSkillText] = useState('');
+  const [newTimelineLabel, setNewTimelineLabel] = useState('');
+  const [newTimelineDate, setNewTimelineDate] = useState(todayISO());
 
   // --- Resizable layout state (persisted) ---------------------------------
   const [sidebarWidth, setSidebarWidth] = useState(256);
@@ -304,6 +355,15 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
       my_notes: '',
       tasks: [],
       requirements: { technical_skills: [] },
+      updated_at: Date.now(),
+      follow_up_date: '',
+      follow_up_method: 'Email',
+      follow_up_reminder: false,
+      contacts: {},
+      custom_skills: [],
+      skill_labels: {},
+      timeline: [{ id: `tl-${Date.now()}`, label: 'Saved', date: todayISO() }],
+      outcome: '',
     });
     setActiveId(id);
     setSearch('');
@@ -318,6 +378,74 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
 
   const tasks = selectedApp?.tasks || [];
   const doneCount = tasks.filter((t) => t.done).length;
+
+  // ---- contacts ------------------------------------------------------------
+  const isEducation =
+    normalizeCategory(selectedApp?.category) === 'education';
+  const contactFields = isEducation ? EDUCATION_CONTACTS : CAREER_CONTACTS;
+  const patchContact = (key, value) =>
+    patch({ contacts: { ...(selectedApp?.contacts || {}), [key]: value } });
+
+  // ---- skills board --------------------------------------------------------
+  const skillsList = Array.from(
+    new Set([
+      ...((selectedApp?.requirements?.technical_skills) || []),
+      ...((selectedApp?.custom_skills) || []),
+    ])
+  );
+  const skillLabels = selectedApp?.skill_labels || {};
+  // Click a skill to cycle through label states.
+  const cycleSkillLabel = (skill) => {
+    const current = skillLabels[skill];
+    const idx = SKILL_LABELS.indexOf(current);
+    const next = idx === SKILL_LABELS.length - 1 ? undefined : SKILL_LABELS[idx + 1];
+    const nextLabels = { ...skillLabels };
+    if (next) nextLabels[skill] = next;
+    else delete nextLabels[skill];
+    patch({ skill_labels: nextLabels });
+  };
+  const addCustomSkill = () => {
+    const v = newSkillText.trim();
+    if (!v || skillsList.includes(v)) {
+      setNewSkillText('');
+      return;
+    }
+    patch({ custom_skills: [...((selectedApp?.custom_skills) || []), v] });
+    setNewSkillText('');
+  };
+  const removeCustomSkill = (skill) => {
+    const nextLabels = { ...skillLabels };
+    delete nextLabels[skill];
+    patch({
+      custom_skills: ((selectedApp?.custom_skills) || []).filter(
+        (s) => s !== skill
+      ),
+      skill_labels: nextLabels,
+    });
+  };
+  const isCustomSkill = (skill) =>
+    ((selectedApp?.custom_skills) || []).includes(skill);
+
+  // ---- timeline ------------------------------------------------------------
+  const timeline = [...((selectedApp?.timeline) || [])].sort(
+    (a, b) => new Date(a.date) - new Date(b.date)
+  );
+  const addTimelineEvent = () => {
+    const label = newTimelineLabel.trim();
+    if (!label || !newTimelineDate) return;
+    patch({
+      timeline: [
+        ...((selectedApp?.timeline) || []),
+        { id: `tl-${Date.now()}`, label, date: newTimelineDate },
+      ],
+    });
+    setNewTimelineLabel('');
+    setNewTimelineDate(todayISO());
+  };
+  const removeTimelineEvent = (eventId) =>
+    patch({
+      timeline: ((selectedApp?.timeline) || []).filter((e) => e.id !== eventId),
+    });
 
   const paneCard =
     'flex flex-col h-full rounded-2xl border border-teal-500/15 bg-[#0a141d]/50 shadow-xl shadow-black/30 ring-1 ring-inset ring-white/[0.02] overflow-hidden';
@@ -915,6 +1043,245 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     </button>
                   </div>
                 </div>
+
+                {/* A. LAST UPDATED */}
+                <CollapsibleSection title="Last Updated" defaultOpen={false}>
+                  <p className="text-sm text-slate-300">
+                    {formatDateTime(selectedApp.updated_at)}
+                  </p>
+                </CollapsibleSection>
+
+                {/* B. FOLLOW-UP */}
+                <CollapsibleSection title="Follow-up" defaultOpen={false}>
+                  <div className="flex flex-col gap-3">
+                    <FieldGroup label="Follow-up date">
+                      <input
+                        type="date"
+                        value={selectedApp.follow_up_date || ''}
+                        onChange={(e) =>
+                          patch({ follow_up_date: e.target.value })
+                        }
+                        className={`px-3 py-1.5 rounded-lg bg-[#060c12] text-teal-200 text-xs focus:outline-none transition ${
+                          selectedApp.follow_up_reminder
+                            ? 'border border-teal-400/60 ring-1 ring-teal-400/40'
+                            : 'border border-teal-900/40 focus:border-teal-500/50'
+                        }`}
+                      />
+                    </FieldGroup>
+                    <FieldGroup label="Follow-up method">
+                      <Selector
+                        value={selectedApp.follow_up_method}
+                        options={FOLLOWUP_METHODS}
+                        onSelect={(v) => patch({ follow_up_method: v })}
+                        onAddOption={() => {}}
+                      />
+                    </FieldGroup>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                        Reminder:
+                      </span>
+                      <button
+                        onClick={() =>
+                          patch({
+                            follow_up_reminder: !selectedApp.follow_up_reminder,
+                          })
+                        }
+                        className={`relative h-5 w-9 rounded-full transition ${
+                          selectedApp.follow_up_reminder
+                            ? 'bg-teal-500'
+                            : 'bg-slate-700'
+                        }`}
+                        aria-label="Toggle reminder"
+                      >
+                        <span
+                          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${
+                            selectedApp.follow_up_reminder ? 'left-4' : 'left-0.5'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                </CollapsibleSection>
+
+                {/* C. CONTACTS (dynamic by category) */}
+                <CollapsibleSection title="Contacts" defaultOpen={false}>
+                  <div className="flex flex-col gap-3">
+                    {contactFields.map((f) => (
+                      <FieldGroup key={f.key} label={f.label}>
+                        <input
+                          value={selectedApp.contacts?.[f.key] || ''}
+                          onChange={(e) => patchContact(f.key, e.target.value)}
+                          placeholder={f.label}
+                          className="w-full px-3 py-1.5 rounded-lg bg-[#060c12]/80 border border-teal-900/40 text-slate-200 text-xs focus:outline-none focus:border-teal-500/50 transition"
+                        />
+                      </FieldGroup>
+                    ))}
+                  </div>
+                </CollapsibleSection>
+
+                {/* D. SKILLS BOARD */}
+                <CollapsibleSection title="Skills Board" defaultOpen={false}>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-wrap gap-1.5">
+                      {skillsList.map((skill) => (
+                        <span
+                          key={skill}
+                          className="inline-flex items-center gap-1"
+                        >
+                          <button
+                            onClick={() => cycleSkillLabel(skill)}
+                            title={
+                              skillLabels[skill]
+                                ? `Label: ${skillLabels[skill]} (click to change)`
+                                : 'Click to label'
+                            }
+                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${skillLabelStyle(
+                              skillLabels[skill]
+                            )}`}
+                          >
+                            {skill}
+                            {skillLabels[skill] ? (
+                              <span className="opacity-70">
+                                · {skillLabels[skill]}
+                              </span>
+                            ) : null}
+                          </button>
+                          {isCustomSkill(skill) && (
+                            <button
+                              onClick={() => removeCustomSkill(skill)}
+                              className="text-slate-600 hover:text-rose-400 text-[10px]"
+                              aria-label="Remove skill"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </span>
+                      ))}
+                      {skillsList.length === 0 && (
+                        <span className="text-xs text-slate-600 italic">
+                          No skills yet.
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={newSkillText}
+                        onChange={(e) => setNewSkillText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') addCustomSkill();
+                        }}
+                        placeholder="Add a skill..."
+                        className="flex-1 px-3 py-1.5 rounded-lg bg-[#060c12] border border-teal-900/40 text-teal-100 text-xs focus:outline-none focus:border-teal-500/50"
+                      />
+                      <button
+                        onClick={addCustomSkill}
+                        className="px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-semibold hover:bg-teal-500/20 transition"
+                      >
+                        Add
+                      </button>
+                    </div>
+                    <p className="text-[9px] text-slate-500 leading-relaxed">
+                      Aggregated from AI-extracted skills + your manual additions.
+                      Click a tag to cycle: Strong → Needs Improvement → Add to
+                      Resume → Add to Portfolio.
+                    </p>
+                  </div>
+                </CollapsibleSection>
+
+                {/* E. TIMELINE */}
+                <CollapsibleSection title="Timeline" defaultOpen={false}>
+                  <div className="flex flex-col gap-3">
+                    <ul className="pl-1">
+                      {timeline.map((ev, i) => (
+                        <li
+                          key={ev.id}
+                          className="group relative flex gap-3 pb-3 last:pb-0"
+                        >
+                          <div className="flex flex-col items-center">
+                            <span className="h-2.5 w-2.5 rounded-full bg-teal-400 ring-2 ring-teal-400/20 mt-1" />
+                            {i < timeline.length - 1 && (
+                              <span className="w-px flex-1 bg-teal-900/50 mt-1" />
+                            )}
+                          </div>
+                          <div className="flex-1 -mt-0.5">
+                            <p className="text-sm text-slate-200 font-medium">
+                              {ev.label}
+                            </p>
+                            <p className="text-[11px] text-teal-500/80">
+                              {formatLong(ev.date)}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => removeTimelineEvent(ev.id)}
+                            className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-rose-400 text-xs self-start"
+                            aria-label="Remove event"
+                          >
+                            ✕
+                          </button>
+                        </li>
+                      ))}
+                      {timeline.length === 0 && (
+                        <li className="text-xs text-slate-600 italic">
+                          No events yet.
+                        </li>
+                      )}
+                    </ul>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['Saved', 'Researched', 'Applied', 'Follow-up', 'Interview'].map(
+                        (s) => (
+                          <button
+                            key={s}
+                            onClick={() => setNewTimelineLabel(s)}
+                            className="px-2 py-0.5 rounded-full bg-teal-950/40 border border-teal-500/20 text-teal-300 text-[10px] hover:bg-teal-900/40 transition"
+                          >
+                            {s}
+                          </button>
+                        )
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={newTimelineLabel}
+                        onChange={(e) => setNewTimelineLabel(e.target.value)}
+                        placeholder="Event"
+                        className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-[#060c12] border border-teal-900/40 text-teal-100 text-xs focus:outline-none focus:border-teal-500/50"
+                      />
+                      <input
+                        type="date"
+                        value={newTimelineDate}
+                        onChange={(e) => setNewTimelineDate(e.target.value)}
+                        className="px-2 py-1.5 rounded-lg bg-[#060c12] border border-teal-900/40 text-teal-200 text-xs focus:outline-none focus:border-teal-500/50"
+                      />
+                      <button
+                        onClick={addTimelineEvent}
+                        className="px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-semibold hover:bg-teal-500/20 transition"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                </CollapsibleSection>
+
+                {/* F. OUTCOME */}
+                <CollapsibleSection
+                  title="Outcome"
+                  defaultOpen={false}
+                  highlight={selectedApp.outcome === 'Offer'}
+                  right={
+                    selectedApp.outcome ? (
+                      <span className="text-[10px] text-teal-300 font-semibold">
+                        {selectedApp.outcome}
+                      </span>
+                    ) : null
+                  }
+                >
+                  <Selector
+                    value={selectedApp.outcome}
+                    options={OUTCOME_OPTIONS}
+                    onSelect={(v) => patch({ outcome: v })}
+                    onAddOption={() => {}}
+                  />
+                </CollapsibleSection>
               </>
             ) : (
               <div className="h-full flex items-center justify-center text-teal-800 text-xs font-medium tracking-wide text-center">

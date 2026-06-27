@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 const identity = (v) => v;
 
@@ -9,6 +10,10 @@ const identity = (v) => v;
 // text predicts existing entries; otherwise the input only adds a custom label.
 // `format` controls how stored values are displayed (e.g. Title Case), while
 // `normalize` controls the canonical stored form (e.g. lowercase).
+//
+// The dropdown is rendered in a portal with fixed positioning anchored to the
+// trigger button, so it always overlays surrounding panes/cards (no z-index or
+// overflow-clipping issues) and stays aligned under the input.
 function MetadataSelector({
   icon,
   value,
@@ -21,8 +26,9 @@ function MetadataSelector({
 }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
+  const [pos, setPos] = useState(null);
+  const btnRef = useRef(null);
 
-  // Always allow the current value to be selectable.
   const allOptions =
     value && !options.some((o) => normalize(o) === normalize(value))
       ? [value, ...options]
@@ -34,12 +40,16 @@ function MetadataSelector({
       ? allOptions.filter((o) => normalize(o).includes(query))
       : allOptions;
 
+  const openMenu = () => {
+    const r = btnRef.current?.getBoundingClientRect();
+    if (r) setPos({ top: r.bottom + 4, left: r.left, width: r.width });
+    setOpen(true);
+  };
+  const toggle = () => (open ? setOpen(false) : openMenu());
+
   const commit = () => {
     const raw = text.trim();
     if (!raw) return;
-
-    // Prefer predicting an existing option: exact normalized match first, then
-    // the top fuzzy suggestion.
     if (predictive && filtered.length) {
       const exact = filtered.find((o) => normalize(o) === query);
       onSelect(exact || filtered[0]);
@@ -52,70 +62,90 @@ function MetadataSelector({
     setOpen(false);
   };
 
+  const menu =
+    open && pos && typeof document !== 'undefined'
+      ? createPortal(
+          <>
+            {/* click-outside catcher */}
+            <div
+              className="fixed inset-0 z-[999]"
+              onClick={() => setOpen(false)}
+            />
+            <div
+              style={{
+                position: 'fixed',
+                top: pos.top,
+                left: pos.left,
+                minWidth: Math.max(pos.width || 0, 208),
+              }}
+              className="z-[1000] rounded-xl border border-teal-500/20 bg-[#0a141d]/95 backdrop-blur-md shadow-xl shadow-black/40 p-1.5"
+            >
+              <div className="flex items-center gap-1 mb-1 pb-1.5 border-b border-teal-900/40">
+                <input
+                  autoFocus
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commit();
+                  }}
+                  placeholder={
+                    predictive ? 'Search or add...' : 'Add custom label...'
+                  }
+                  className="flex-1 min-w-0 px-2 py-1 rounded-md bg-[#060c12] border border-teal-900/40 text-[11px] text-teal-100 placeholder-teal-800/50 focus:outline-none focus:border-teal-500/50"
+                />
+                <button
+                  type="button"
+                  onClick={commit}
+                  className="px-2 py-1 rounded-md bg-teal-500/10 border border-teal-500/30 text-teal-300 text-[11px] font-bold hover:bg-teal-500/20 transition"
+                  aria-label="Add or select"
+                >
+                  +
+                </button>
+              </div>
+              <div className="max-h-44 overflow-y-auto space-y-0.5">
+                {filtered.map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => {
+                      onSelect(opt);
+                      setText('');
+                      setOpen(false);
+                    }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] transition ${
+                      normalize(opt) === normalize(value)
+                        ? 'bg-teal-500/15 text-teal-200'
+                        : 'text-slate-300 hover:bg-teal-900/40'
+                    }`}
+                  >
+                    {format(opt)}
+                  </button>
+                ))}
+                {filtered.length === 0 && (
+                  <div className="px-2.5 py-1.5 text-[11px] text-slate-500 italic">
+                    Press + to add “{text.trim()}”
+                  </div>
+                )}
+              </div>
+            </div>
+          </>,
+          document.body
+        )
+      : null;
+
   return (
     <div className="relative inline-block">
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
         className="inline-flex items-center gap-1.5 rounded-full bg-teal-950/40 border border-teal-500/20 px-3 py-1 text-[11px] font-semibold text-teal-200 hover:bg-teal-900/40 transition"
       >
         {icon ? <span className="text-[10px] leading-none">{icon}</span> : null}
         <span>{value ? format(value) : 'Set'}</span>
         <span className="text-[8px] text-teal-500/80">▼</span>
       </button>
-
-      {open && (
-        <>
-          {/* click-outside catcher */}
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute z-50 mt-1 w-52 rounded-xl border border-teal-500/20 bg-[#0a141d]/95 backdrop-blur-md shadow-xl shadow-black/40 p-1.5">
-            <div className="flex items-center gap-1 mb-1 pb-1.5 border-b border-teal-900/40">
-              <input
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') commit();
-                }}
-                placeholder={predictive ? 'Search or add...' : 'Add custom label...'}
-                className="flex-1 min-w-0 px-2 py-1 rounded-md bg-[#060c12] border border-teal-900/40 text-[11px] text-teal-100 placeholder-teal-800/50 focus:outline-none focus:border-teal-500/50"
-              />
-              <button
-                type="button"
-                onClick={commit}
-                className="px-2 py-1 rounded-md bg-teal-500/10 border border-teal-500/30 text-teal-300 text-[11px] font-bold hover:bg-teal-500/20 transition"
-                aria-label="Add or select"
-              >
-                +
-              </button>
-            </div>
-            <div className="max-h-44 overflow-y-auto space-y-0.5">
-              {filtered.map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => {
-                    onSelect(opt);
-                    setText('');
-                    setOpen(false);
-                  }}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] transition ${
-                    normalize(opt) === normalize(value)
-                      ? 'bg-teal-500/15 text-teal-200'
-                      : 'text-slate-300 hover:bg-teal-900/40'
-                  }`}
-                >
-                  {format(opt)}
-                </button>
-              ))}
-              {filtered.length === 0 && (
-                <div className="px-2.5 py-1.5 text-[11px] text-slate-500 italic">
-                  Press + to add “{text.trim()}”
-                </div>
-              )}
-            </div>
-          </div>
-        </>
-      )}
+      {menu}
     </div>
   );
 }
@@ -132,13 +162,18 @@ export function FieldGroup({ label, children }) {
   );
 }
 
-// Title Case helper used for category display (stored lowercase).
+// Title Case helper (stored values are lowercase).
 const titleCase = (s) =>
   (s || '')
     .split(/\s+/)
     .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
     .join(' ');
 const lower = (s) => (s || '').trim().toLowerCase();
+
+// Title Case + always-uppercase region codes inside parentheses.
+//   "remote (eu)" -> "Remote (EU)"  /  "toronto (ca)" -> "Toronto (CA)"
+const titleCaseLocation = (s) =>
+  titleCase(s).replace(/\(([^)]+)\)/g, (_, inner) => `(${inner.toUpperCase()})`);
 
 export const StatusSelector = (props) => (
   <MetadataSelector icon="🔖" {...props} />
@@ -159,16 +194,18 @@ export const CategorySelector = (props) => (
     {...props}
   />
 );
-// Location: freeform autocomplete — stored lowercase, shown Title Case,
-// case-insensitive fuzzy matching, with preset + custom values.
+// Location: freeform autocomplete — stored lowercase, shown Title Case with
+// uppercased parenthetical region codes, case-insensitive fuzzy matching.
 export const LocationSelector = (props) => (
   <MetadataSelector
     icon="📍"
     predictive
-    format={titleCase}
+    format={titleCaseLocation}
     normalize={lower}
     {...props}
   />
 );
+// Generic selector (fixed option lists, e.g. follow-up method, outcome).
+export const Selector = (props) => <MetadataSelector {...props} />;
 
-export { titleCase };
+export { titleCase, titleCaseLocation };
