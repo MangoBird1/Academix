@@ -159,5 +159,16 @@ export const CategorySelector = (props) => (
     {...props}
   />
 );
+// Location: freeform autocomplete — stored lowercase, shown Title Case,
+// case-insensitive fuzzy matching, with preset + custom values.
+export const LocationSelector = (props) => (
+  <MetadataSelector
+    icon="📍"
+    predictive
+    format={titleCase}
+    normalize={lower}
+    {...props}
+  />
+);
 
 export { titleCase };

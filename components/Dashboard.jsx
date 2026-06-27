@@ -10,6 +10,7 @@ import {
   PrioritySelector,
   ApplicationMethodSelector,
   CategorySelector,
+  LocationSelector,
   titleCase,
 } from '@/components/MetadataSection';
 
@@ -45,6 +46,21 @@ const DEFAULT_STATUS_OPTIONS = ['Saved', 'Applied', 'Interviewing', 'Offer', 'Re
 const DEFAULT_PRIORITY_OPTIONS = ['Low Priority', 'Medium Priority', 'High Priority'];
 const DEFAULT_METHOD_OPTIONS = ['Company Website', 'LinkedIn', 'Referral', 'Email', 'Job Board'];
 const PRESET_CATEGORIES = ['career', 'education', 'other'];
+const PRESET_LOCATIONS = [
+  'remote',
+  'remote (us)',
+  'remote (eu)',
+  'hybrid',
+  'on-site',
+  'new york, ny',
+  'san francisco, ca',
+  'london, uk',
+  'berlin, de',
+  'toronto, ca',
+];
+
+// Locations are stored lowercase and shown in Title Case.
+const normalizeLocation = (loc) => (loc || '').trim().toLowerCase();
 
 // Layout sizing constraints (px).
 const SIDEBAR_MIN = 200;
@@ -62,6 +78,7 @@ const LS = {
   priority: 'academix:userDefinedPriorityOptions',
   methods: 'academix:userDefinedApplicationMethods',
   categories: 'academix:userDefinedCategories',
+  locations: 'academix:userDefinedLocations',
 };
 
 export default function AcademixTealDashboard({ initialApplications = [] }) {
@@ -98,6 +115,8 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     useState(DEFAULT_METHOD_OPTIONS);
   const [userDefinedCategories, setUserDefinedCategories] =
     useState(PRESET_CATEGORIES);
+  const [userDefinedLocations, setUserDefinedLocations] =
+    useState(PRESET_LOCATIONS);
 
   // Hydrate persisted layout + option lists once on the client.
   useEffect(() => {
@@ -120,6 +139,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
       arr(LS.priority, setUserDefinedPriorityOptions);
       arr(LS.methods, setUserDefinedApplicationMethods);
       arr(LS.categories, setUserDefinedCategories);
+      arr(LS.locations, setUserDefinedLocations);
     } catch {
       /* ignore storage errors */
     }
@@ -150,6 +170,10 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
   useEffect(
     () => persist(LS.categories, JSON.stringify(userDefinedCategories)),
     [userDefinedCategories]
+  );
+  useEffect(
+    () => persist(LS.locations, JSON.stringify(userDefinedLocations)),
+    [userDefinedLocations]
   );
 
   // --- Resize handlers (mirror the same incremental-delta logic) ----------
@@ -182,6 +206,13 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     new Set([
       ...userDefinedCategories.map((c) => normalizeCategory(c)),
       ...existingCategories,
+    ])
+  ).filter(Boolean);
+  // Selectable location options = presets + custom + anything already in data.
+  const locationOptions = Array.from(
+    new Set([
+      ...userDefinedLocations.map((l) => normalizeLocation(l)),
+      ...applications.map((a) => normalizeLocation(a.location)).filter(Boolean),
     ])
   ).filter(Boolean);
 
@@ -229,6 +260,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     else if (kind === 'priority') setUserDefinedPriorityOptions(addCI);
     else if (kind === 'applicationMethod') setUserDefinedApplicationMethods(addCI);
     else if (kind === 'category') setUserDefinedCategories(addLower);
+    else if (kind === 'location') setUserDefinedLocations(addLower);
   };
 
   const handleGoalChange = (chosenDate) => {
@@ -292,8 +324,6 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
   // Resizable content textareas (drag the bottom-right corner: resize:both).
   const resizableArea =
     'w-full max-w-full p-4 rounded-2xl border border-teal-900/30 bg-[#060c12]/80 text-slate-300 text-sm focus:outline-none focus:border-teal-500/50 resize overflow-auto';
-  const smallInput =
-    'w-full px-3 py-1.5 rounded-lg bg-[#060c12]/80 border border-teal-900/40 text-slate-200 text-xs focus:outline-none focus:border-teal-500/50 transition';
   const calBtn = (active) =>
     `h-8 w-8 shrink-0 flex items-center justify-center rounded-lg border text-sm transition ${
       active
@@ -539,6 +569,38 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                   />
                 </div>
 
+                {/* Status / Priority / Application Method (label + selector) */}
+                <div className="flex flex-col gap-3">
+                  <FieldGroup label="Status">
+                    <StatusSelector
+                      value={selectedApp.status}
+                      options={userDefinedStatusOptions}
+                      onSelect={(v) => handleMetaChange('status', v)}
+                      onAddOption={(v) => handleAddOption('status', v)}
+                    />
+                  </FieldGroup>
+
+                  <FieldGroup label="Priority">
+                    <PrioritySelector
+                      value={selectedApp.priority}
+                      options={userDefinedPriorityOptions}
+                      onSelect={(v) => handleMetaChange('priority', v)}
+                      onAddOption={(v) => handleAddOption('priority', v)}
+                    />
+                  </FieldGroup>
+
+                  <FieldGroup label="Application Method">
+                    <ApplicationMethodSelector
+                      value={selectedApp.applicationMethod}
+                      options={userDefinedApplicationMethods}
+                      onSelect={(v) => handleMetaChange('applicationMethod', v)}
+                      onAddOption={(v) =>
+                        handleAddOption('applicationMethod', v)
+                      }
+                    />
+                  </FieldGroup>
+                </div>
+
                 {/* Description (resizable) */}
                 <div className="space-y-2">
                   <span className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
@@ -661,43 +723,14 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {selectedApp ? (
               <>
-                {/* STATUS / PRIORITY / METHOD / LOCATION / CATEGORY */}
+                {/* LOCATION / CATEGORY */}
                 <div className={`flex flex-col gap-3 ${glassCard}`}>
-                  <FieldGroup label="Status">
-                    <StatusSelector
-                      value={selectedApp.status}
-                      options={userDefinedStatusOptions}
-                      onSelect={(v) => handleMetaChange('status', v)}
-                      onAddOption={(v) => handleAddOption('status', v)}
-                    />
-                  </FieldGroup>
-
-                  <FieldGroup label="Priority">
-                    <PrioritySelector
-                      value={selectedApp.priority}
-                      options={userDefinedPriorityOptions}
-                      onSelect={(v) => handleMetaChange('priority', v)}
-                      onAddOption={(v) => handleAddOption('priority', v)}
-                    />
-                  </FieldGroup>
-
-                  <FieldGroup label="Application Method">
-                    <ApplicationMethodSelector
-                      value={selectedApp.applicationMethod}
-                      options={userDefinedApplicationMethods}
-                      onSelect={(v) => handleMetaChange('applicationMethod', v)}
-                      onAddOption={(v) =>
-                        handleAddOption('applicationMethod', v)
-                      }
-                    />
-                  </FieldGroup>
-
                   <FieldGroup label="Location">
-                    <input
-                      value={selectedApp.location || ''}
-                      onChange={(e) => patch({ location: e.target.value })}
-                      placeholder="Location"
-                      className={smallInput}
+                    <LocationSelector
+                      value={selectedApp.location}
+                      options={locationOptions}
+                      onSelect={(v) => handleMetaChange('location', v)}
+                      onAddOption={(v) => handleAddOption('location', v)}
                     />
                   </FieldGroup>
 

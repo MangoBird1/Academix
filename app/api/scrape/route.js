@@ -31,7 +31,7 @@ function normalizePayload(body) {
     title: extracted.title || 'Untitled application',
     organization_name: extracted.company || extracted.organization || 'Unknown',
     category: (category || 'career').trim().toLowerCase(),
-    location: extracted.location || 'Remote',
+    location: (extracted.location || 'Remote').trim().toLowerCase(),
     status: extracted.status || 'Saved',
     priority: extracted.priority || 'Medium Priority',
     applicationMethod: extracted.application_method || 'Company Website',
