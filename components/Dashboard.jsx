@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useApplications } from '@/lib/useApplications';
 import Calendar from '@/components/Calendar';
-import StatusBar from '@/components/StatusBar';
+import MetadataSection from '@/components/MetadataSection';
+import VerticalDivider, { startColumnDrag } from '@/components/VerticalDivider';
 
 const formatLong = (iso) => {
   if (!iso) return '—';
@@ -17,6 +18,7 @@ const formatLong = (iso) => {
 };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
+const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
 const categoryTagStyles = (cat) => {
   if (cat === 'career') return 'bg-cyan-950/60 text-cyan-400 border border-cyan-500/20';
@@ -30,10 +32,29 @@ const categoryTagLabel = (cat) => {
   return cat || 'Other';
 };
 
+// Default user-customizable option lists (persisted to localStorage).
+const DEFAULT_STATUS_OPTIONS = ['Saved', 'Applied', 'Interviewing', 'Offer', 'Rejected'];
+const DEFAULT_PRIORITY_OPTIONS = ['Low Priority', 'Medium Priority', 'High Priority'];
+const DEFAULT_METHOD_OPTIONS = ['Company Website', 'LinkedIn', 'Referral', 'Email', 'Job Board'];
+
+// Layout sizing constraints (px).
+const SIDEBAR_MIN = 200;
+const SIDEBAR_MAX = 420;
+const PANE1_MIN = 240;
+const PANE1_MAX = 560;
+const PANE3_MIN = 260;
+const PANE3_MAX = 560;
+
+const LS = {
+  sidebar: 'academix:sidebarWidth',
+  pane1: 'academix:pane1Width',
+  pane3: 'academix:pane3Width',
+  status: 'academix:userDefinedStatusOptions',
+  priority: 'academix:userDefinedPriorityOptions',
+  methods: 'academix:userDefinedApplicationMethods',
+};
+
 export default function AcademixTealDashboard({ initialApplications = [] }) {
-  // The hook owns the list: it subscribes to Firestore (onSnapshot) when
-  // configured and otherwise keeps the seed data in local state. Either way
-  // updates patch the UI instantly and persist when connected.
   const {
     applications,
     updateApplication,
@@ -52,6 +73,84 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
   const [openCalendar, setOpenCalendar] = useState(null); // 'goal' | 'deadline' | null
   const [newTaskText, setNewTaskText] = useState('');
 
+  // --- Resizable layout state (persisted) ---------------------------------
+  const [sidebarWidth, setSidebarWidth] = useState(256);
+  const [pane1Width, setPane1Width] = useState(320);
+  const [pane3Width, setPane3Width] = useState(340);
+  const [isResizing, setIsResizing] = useState(false);
+
+  // --- User-defined option lists (persisted) ------------------------------
+  const [userDefinedStatusOptions, setUserDefinedStatusOptions] =
+    useState(DEFAULT_STATUS_OPTIONS);
+  const [userDefinedPriorityOptions, setUserDefinedPriorityOptions] =
+    useState(DEFAULT_PRIORITY_OPTIONS);
+  const [userDefinedApplicationMethods, setUserDefinedApplicationMethods] =
+    useState(DEFAULT_METHOD_OPTIONS);
+
+  // Hydrate persisted layout + option lists once on the client.
+  useEffect(() => {
+    try {
+      const num = (key, setter, min, max) => {
+        const raw = localStorage.getItem(key);
+        if (raw !== null && !Number.isNaN(+raw)) setter(clamp(+raw, min, max));
+      };
+      num(LS.sidebar, setSidebarWidth, SIDEBAR_MIN, SIDEBAR_MAX);
+      num(LS.pane1, setPane1Width, PANE1_MIN, PANE1_MAX);
+      num(LS.pane3, setPane3Width, PANE3_MIN, PANE3_MAX);
+
+      const arr = (key, setter) => {
+        const raw = localStorage.getItem(key);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) setter(parsed);
+      };
+      arr(LS.status, setUserDefinedStatusOptions);
+      arr(LS.priority, setUserDefinedPriorityOptions);
+      arr(LS.methods, setUserDefinedApplicationMethods);
+    } catch {
+      /* ignore storage errors */
+    }
+  }, []);
+
+  // Persist each piece of layout/option state when it changes.
+  const persist = (key, value) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      /* ignore storage errors */
+    }
+  };
+  useEffect(() => persist(LS.sidebar, String(sidebarWidth)), [sidebarWidth]);
+  useEffect(() => persist(LS.pane1, String(pane1Width)), [pane1Width]);
+  useEffect(() => persist(LS.pane3, String(pane3Width)), [pane3Width]);
+  useEffect(
+    () => persist(LS.status, JSON.stringify(userDefinedStatusOptions)),
+    [userDefinedStatusOptions]
+  );
+  useEffect(
+    () => persist(LS.priority, JSON.stringify(userDefinedPriorityOptions)),
+    [userDefinedPriorityOptions]
+  );
+  useEffect(
+    () => persist(LS.methods, JSON.stringify(userDefinedApplicationMethods)),
+    [userDefinedApplicationMethods]
+  );
+
+  // --- Resize handlers (mirror the same incremental-delta logic) ----------
+  const resizeSidebar = useCallback(
+    (delta) => setSidebarWidth((w) => clamp(w + delta, SIDEBAR_MIN, SIDEBAR_MAX)),
+    []
+  );
+  const resizePane1 = useCallback(
+    (delta) => setPane1Width((w) => clamp(w + delta, PANE1_MIN, PANE1_MAX)),
+    []
+  );
+  const resizePane3 = useCallback(
+    // Pane 3 sits to the RIGHT of its divider, so dragging right shrinks it.
+    (delta) => setPane3Width((w) => clamp(w - delta, PANE3_MIN, PANE3_MAX)),
+    []
+  );
+
   // Keep a valid active selection even as the live list changes.
   const resolvedActiveId =
     applications.find((app) => app.id === activeId)?.id ||
@@ -59,12 +158,10 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     null;
   const selectedApp = applications.find((app) => app.id === resolvedActiveId);
 
-  // Distinct categories (built-in + any custom ones the user added).
   const categories = Array.from(
     new Set(applications.map((a) => a.category).filter(Boolean))
   );
 
-  // Client-side search + category filter + quick sorting (zero-latency).
   const visibleApplications = applications
     .filter((app) => {
       if (categoryFilter !== 'all' && app.category !== categoryFilter) {
@@ -89,7 +186,17 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     updateApplication(selectedApp.id, partial);
   };
 
-  // Goal date: may never sit past the official application deadline.
+  const handleMetaChange = (field, value) => patch({ [field]: value });
+
+  const handleAddOption = (kind, value) => {
+    const v = (value || '').trim();
+    if (!v) return;
+    const add = (list) => (list.includes(v) ? list : [...list, v]);
+    if (kind === 'status') setUserDefinedStatusOptions(add);
+    else if (kind === 'priority') setUserDefinedPriorityOptions(add);
+    else if (kind === 'applicationMethod') setUserDefinedApplicationMethods(add);
+  };
+
   const handleGoalChange = (chosenDate) => {
     if (!selectedApp) return;
     if (new Date(chosenDate) > new Date(selectedApp.application_deadline)) {
@@ -101,7 +208,6 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     patch({ personal_completion_deadline: chosenDate });
   };
 
-  // Deadline (cap): if it drops below the current goal, pull the goal back too.
   const handleDeadlineChange = (chosenDate) => {
     if (!selectedApp) return;
     const partial = { application_deadline: chosenDate };
@@ -121,6 +227,9 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
       organization_name: 'Untitled organization',
       category: 'career',
       location: 'Remote',
+      status: 'Saved',
+      priority: 'Medium Priority',
+      applicationMethod: 'Company Website',
       description: '',
       source_url: '',
       application_deadline: deadline,
@@ -157,13 +266,12 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
 
   return (
     <div className="flex h-screen w-screen bg-[#070e14] text-cyan-50 font-sans overflow-hidden select-none">
-      {/* 0. SIDEBAR PANEL (SHIFTS SPLIT PANES DYNAMICALLY WHEN TOGGLED) */}
+      {/* 0. SIDEBAR PANEL (resizable width; shifts panes; collapses left) */}
       <aside
-        className={`bg-[#0a141d]/90 border-r border-teal-900/30 flex flex-col p-6 backdrop-blur-md transition-all duration-300 ease-in-out ${
-          sidebarOpen
-            ? 'w-64 opacity-100'
-            : 'w-0 p-0 opacity-0 overflow-hidden border-r-0'
-        }`}
+        style={{ width: sidebarOpen ? sidebarWidth : 0 }}
+        className={`relative shrink-0 bg-[#0a141d]/90 border-r border-teal-900/30 flex flex-col backdrop-blur-md ${
+          sidebarOpen ? 'p-6 opacity-100' : 'p-0 opacity-0 overflow-hidden border-r-0'
+        } ${isResizing ? '' : 'transition-all duration-300 ease-in-out'}`}
       >
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-400 tracking-wider">
@@ -202,10 +310,26 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
             {isLive ? 'Firestore live sync' : 'Local demo data'}
           </span>
         </div>
+
+        {/* DRAGGABLE RIGHT EDGE — resize the sidebar by grabbing its boundary */}
+        {sidebarOpen && (
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize sidebar"
+            onMouseDown={(e) => {
+              setIsResizing(true);
+              startColumnDrag(e, resizeSidebar, () => setIsResizing(false));
+            }}
+            className="group absolute top-0 right-0 h-full w-1.5 cursor-col-resize"
+          >
+            <div className="absolute inset-y-0 right-0 w-px bg-transparent group-hover:bg-teal-400/60 group-active:bg-teal-400/80 transition-colors" />
+          </div>
+        )}
       </aside>
 
-      {/* THREE PANES WRAPPER CONTAINER (gap + padding makes panes float as cards) */}
-      <div className="flex flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out relative gap-4 p-4">
+      {/* THREE PANES WRAPPER CONTAINER */}
+      <div className="flex flex-1 h-full overflow-hidden relative gap-2 p-4">
         {/* SIDEBAR EXPANSION FLOATING ICON (only when collapsed) */}
         {!sidebarOpen && (
           <button
@@ -218,7 +342,10 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
         )}
 
         {/* PANE 1: SEARCH AND INDEX TREE */}
-        <section className={`w-80 ${paneCard} ${!sidebarOpen ? 'pt-12' : ''}`}>
+        <section
+          style={{ width: pane1Width }}
+          className={`shrink-0 ${paneCard} ${!sidebarOpen ? 'pt-12' : ''}`}
+        >
           <div className="p-4 border-b border-teal-900/30 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-slate-200">
@@ -279,7 +406,6 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
             </div>
           </div>
 
-          {/* Dynamic Card Scroll Loop */}
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {visibleApplications.map((app) => {
               const isActive = resolvedActiveId === app.id;
@@ -343,8 +469,16 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
           </div>
         </section>
 
+        {/* DIVIDER: index ↔ main */}
+        <VerticalDivider
+          onResize={resizePane1}
+          onResizeStart={() => setIsResizing(true)}
+          onResizeEnd={() => setIsResizing(false)}
+          ariaLabel="Resize index list"
+        />
+
         {/* PANE 2: MAIN DATA & NOTE DESCRIPTION CANVAS */}
-        <section className={`flex-1 ${paneCard}`}>
+        <section className={`flex-1 min-w-0 ${paneCard}`}>
           <div className="flex-1 overflow-y-auto p-8 bg-[#0a1520]/20">
             {selectedApp ? (
               <div className="space-y-6">
@@ -366,11 +500,16 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                   />
                 </div>
 
-                {/* Status / priority / application method pills */}
-                <StatusBar
+                {/* Vertically stacked editable status metadata */}
+                <MetadataSection
                   status={selectedApp.status}
                   priority={selectedApp.priority}
-                  applicationMethod={selectedApp.application_method}
+                  applicationMethod={selectedApp.applicationMethod}
+                  statusOptions={userDefinedStatusOptions}
+                  priorityOptions={userDefinedPriorityOptions}
+                  applicationMethodOptions={userDefinedApplicationMethods}
+                  onChange={handleMetaChange}
+                  onAddOption={handleAddOption}
                 />
 
                 {/* Description (between company name and URL) */}
@@ -457,7 +596,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                   />
                 </div>
 
-                {/* My Notes Section (new) */}
+                {/* My Notes Section */}
                 <div className="space-y-2.5">
                   <label className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
                     🗒️ My Notes
@@ -478,8 +617,16 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
           </div>
         </section>
 
+        {/* DIVIDER: main ↔ right pane */}
+        <VerticalDivider
+          onResize={resizePane3}
+          onResizeStart={() => setIsResizing(true)}
+          onResizeEnd={() => setIsResizing(false)}
+          ariaLabel="Resize metadata pane"
+        />
+
         {/* PANE 3: RIGHT ALIGNED METADATA PANEL */}
-        <section className={`w-80 ${paneCard}`}>
+        <section style={{ width: pane3Width }} className={`shrink-0 ${paneCard}`}>
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {selectedApp ? (
               <>
@@ -612,7 +759,6 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     </span>
                   </div>
 
-                  {/* Progress bar */}
                   <div className="h-1.5 w-full rounded-full bg-[#060c12] overflow-hidden">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-400 transition-all"
@@ -668,7 +814,6 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     )}
                   </ul>
 
-                  {/* Add task */}
                   <div className="flex items-center gap-2 pt-1">
                     <input
                       value={newTaskText}
