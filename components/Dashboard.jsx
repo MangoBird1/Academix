@@ -392,6 +392,11 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     : isCareer
     ? 'Job Description'
     : 'Description';
+  const overviewLabel = isEducation
+    ? 'Program Overview'
+    : isCareer
+    ? 'Company Overview'
+    : 'Overview';
   const contactFields = isEducation ? EDUCATION_CONTACTS : CAREER_CONTACTS;
   const patchContact = (key, value) =>
     patch({ contacts: { ...(selectedApp?.contacts || {}), [key]: value } });
@@ -705,12 +710,15 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     placeholder="Organization / company"
                     className="w-full bg-transparent text-md text-teal-400/80 font-medium focus:outline-none focus:bg-[#060c12]/60 rounded-lg px-1 -ml-1 transition"
                   />
-                  {/* Optional organization description, under the org name */}
+                  {/* Optional organization/program overview, under the org name */}
+                  <span className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
+                    {overviewLabel}
+                  </span>
                   <textarea
                     value={selectedApp.org_description || ''}
                     onChange={(e) => patch({ org_description: e.target.value })}
                     placeholder="Organization description (optional)"
-                    className={`${resizableArea} h-12 min-h-[2.5rem] !rounded-xl text-xs text-slate-400 mt-1`}
+                    className={`${resizableArea} h-12 min-h-[2.5rem] !rounded-xl text-xs text-slate-400`}
                   />
                 </div>
 
