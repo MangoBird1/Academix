@@ -2,12 +2,26 @@
 
 import { useState } from 'react';
 import { useApplications } from '@/lib/useApplications';
+import Calendar from '@/components/Calendar';
+
+const formatLong = (iso) => {
+  if (!iso) return '—';
+  const d = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
 export default function AcademixTealDashboard({ initialApplications = [] }) {
   // The hook owns the list: it subscribes to Firestore (onSnapshot) when
   // configured and otherwise keeps the seed data in local state. Either way
   // `updateApplication` patches the UI instantly and persists when connected.
-  const { applications, updateApplication, isLive } =
+  const { applications, updateApplication, addApplication, isLive } =
     useApplications(initialApplications);
 
   const [activeId, setActiveId] = useState(initialApplications[0]?.id || null);
@@ -57,6 +71,26 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     updateApplication(selectedApp.id, { notes: value });
   };
 
+  const handleNewApplication = () => {
+    const deadline = todayISO();
+    const id = addApplication({
+      title: 'New Application',
+      organization_name: 'Untitled organization',
+      category: 'career',
+      location: 'Remote',
+      source_url: '',
+      application_deadline: deadline,
+      personal_completion_deadline: deadline,
+      notes: '',
+      requirements: { technical_skills: [] },
+    });
+    setActiveId(id);
+    setSearch('');
+  };
+
+  const paneCard =
+    'flex flex-col h-full rounded-2xl border border-teal-500/15 bg-[#0a141d]/50 shadow-xl shadow-black/30 ring-1 ring-inset ring-white/[0.02] overflow-hidden';
+
   return (
     <div className="flex h-screen w-screen bg-[#070e14] text-cyan-50 font-sans overflow-hidden select-none">
       {/* 0. SIDEBAR PANEL (SHIFTS SPLIT PANES DYNAMICALLY WHEN TOGGLED) */}
@@ -67,9 +101,19 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
             : 'w-0 p-0 opacity-0 overflow-hidden border-r-0'
         }`}
       >
-        <h1 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-400 tracking-wider mb-8">
-          Academix
-        </h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-400 tracking-wider">
+            Academix
+          </h1>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="h-7 w-7 flex items-center justify-center rounded-lg bg-teal-950/60 border border-teal-500/20 text-teal-400 hover:bg-teal-900 text-xs transition"
+            title="Collapse navigation"
+            aria-label="Collapse navigation"
+          >
+            ◀
+          </button>
+        </div>
         <nav className="flex-1 space-y-1.5">
           <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold bg-teal-950/40 border border-teal-500/20 text-teal-300 shadow-lg shadow-teal-500/5">
             📁 All Applications
@@ -96,20 +140,36 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
         </div>
       </aside>
 
-      {/* THREE PANES WRAPPER CONTAINER */}
-      <div className="flex flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out relative">
-        {/* SIDEBAR EXPANSION FLOATING ICON */}
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="absolute top-4 left-4 z-50 p-2 rounded-lg bg-teal-950/80 border border-teal-500/30 text-teal-400 hover:bg-teal-900 text-xs transition"
-          title="Toggle Navigation Panel"
-        >
-          {sidebarOpen ? '◀ Collapse' : '▶ Menu'}
-        </button>
+      {/* THREE PANES WRAPPER CONTAINER (gap + padding makes panes float as cards) */}
+      <div className="flex flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out relative gap-4 p-4">
+        {/* SIDEBAR EXPANSION FLOATING ICON (only when collapsed) */}
+        {!sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="absolute top-6 left-6 z-50 px-3 py-2 rounded-lg bg-teal-950/80 border border-teal-500/30 text-teal-400 hover:bg-teal-900 text-xs font-semibold transition shadow-lg"
+            title="Open navigation panel"
+          >
+            ▶ Menu
+          </button>
+        )}
 
         {/* PANE 1: SEARCH AND INDEX TREE */}
-        <section className="w-80 border-r border-teal-900/20 flex flex-col h-full bg-[#081119]/60 pl-14 pt-2">
-          <div className="p-4 border-b border-teal-900/20 space-y-3">
+        <section
+          className={`w-80 ${paneCard} ${!sidebarOpen ? 'pt-12' : ''}`}
+        >
+          <div className="p-4 border-b border-teal-900/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-200">
+                Applications{' '}
+                <span className="text-teal-500/80">({applications.length})</span>
+              </h3>
+              <button
+                onClick={handleNewApplication}
+                className="px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-semibold hover:bg-teal-500/20 transition"
+              >
+                + New
+              </button>
+            </div>
             <input
               type="text"
               value={search}
@@ -142,35 +202,61 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
 
           {/* Dynamic Card Scroll Loop */}
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
-            {visibleApplications.map((app) => (
-              <div
-                key={app.id}
-                onClick={() => setActiveId(app.id)}
-                className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
-                  resolvedActiveId === app.id
-                    ? 'bg-gradient-to-br from-teal-950/30 to-cyan-950/20 border-teal-500/40 shadow-lg shadow-teal-500/5'
-                    : 'bg-[#0b141d]/40 border-teal-950/30 hover:bg-teal-950/10 hover:border-teal-900/40'
-                }`}
-              >
-                <div className="flex justify-between items-start gap-2">
-                  <h4 className="font-bold text-sm text-slate-200 truncate">
-                    {app.title}
-                  </h4>
-                  <span
-                    className={`text-[10px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded-md ${
-                      app.category === 'career'
-                        ? 'bg-cyan-950/60 text-cyan-400 border border-cyan-500/20'
-                        : 'bg-purple-950/60 text-purple-400 border border-purple-500/20'
-                    }`}
-                  >
-                    {app.category === 'career' ? 'Job' : 'Uni'}
-                  </span>
+            {visibleApplications.map((app) => {
+              const isActive = resolvedActiveId === app.id;
+              return (
+                <div
+                  key={app.id}
+                  onClick={() => setActiveId(app.id)}
+                  className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
+                    isActive
+                      ? 'bg-gradient-to-br from-teal-950/40 to-cyan-950/20 border-teal-500/50 shadow-lg shadow-teal-500/10'
+                      : 'bg-[#0b141d]/40 border-teal-950/40 hover:bg-teal-950/10 hover:border-teal-900/50'
+                  }`}
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <h4 className="font-bold text-sm text-slate-200 truncate">
+                      {app.title}
+                    </h4>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span
+                        className={`text-[10px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded-md ${
+                          app.category === 'career'
+                            ? 'bg-cyan-950/60 text-cyan-400 border border-cyan-500/20'
+                            : 'bg-purple-950/60 text-purple-400 border border-purple-500/20'
+                        }`}
+                      >
+                        {app.category === 'career' ? 'Job' : 'Uni'}
+                      </span>
+                      {isActive && (
+                        <span className="h-4 w-4 flex items-center justify-center rounded-full bg-teal-500 text-[9px] text-[#04121a] font-black">
+                          ✓
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-400 truncate mt-1">
+                    {app.organization_name}
+                  </p>
+                  <div className="mt-2.5 space-y-1">
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                      <span>📅</span>
+                      <span>Deadline:</span>
+                      <span className="text-rose-400/90 font-medium">
+                        {formatLong(app.application_deadline)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                      <span>⏱️</span>
+                      <span>Goal:</span>
+                      <span className="text-teal-400/90 font-medium">
+                        {formatLong(app.personal_completion_deadline)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-400 truncate mt-1">
-                  {app.organization_name}
-                </p>
-              </div>
-            ))}
+              );
+            })}
 
             {visibleApplications.length === 0 && (
               <div className="px-3 py-8 text-center text-xs text-teal-800/70 font-medium">
@@ -181,150 +267,170 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
         </section>
 
         {/* PANE 2: MAIN DATA & NOTE DESCRIPTION CANVAS */}
-        <section className="flex-1 border-r border-teal-900/20 flex flex-col h-full bg-[#0a1520]/20 p-8 overflow-y-auto">
-          {selectedApp ? (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-black tracking-tight text-white">
-                  {selectedApp.title}
-                </h2>
-                <p className="text-md text-teal-400/80 font-medium mt-0.5">
-                  {selectedApp.organization_name}
-                </p>
-              </div>
+        <section className={`flex-1 ${paneCard}`}>
+          <div className="flex-1 overflow-y-auto p-8 bg-[#0a1520]/20">
+            {selectedApp ? (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-black tracking-tight text-white">
+                    {selectedApp.title}
+                  </h2>
+                  <p className="text-md text-teal-400/80 font-medium mt-0.5">
+                    {selectedApp.organization_name}
+                  </p>
+                </div>
 
-              {/* URL Context Field */}
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
-                  Source URL
-                </span>
-                <a
-                  href={selectedApp.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block p-3 bg-[#060c12]/80 border border-teal-900/30 rounded-xl text-xs text-cyan-300/70 truncate hover:text-cyan-200 hover:border-teal-500/40 transition"
-                >
-                  {selectedApp.source_url}
-                </a>
-              </div>
+                {/* URL Context Field */}
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
+                    Source URL
+                  </span>
+                  <a
+                    href={selectedApp.source_url || undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-3 bg-[#060c12]/80 border border-teal-900/30 rounded-xl text-xs text-cyan-300/70 truncate hover:text-cyan-200 hover:border-teal-500/40 transition"
+                  >
+                    {selectedApp.source_url || 'No source URL yet'}
+                  </a>
+                </div>
 
-              {/* AI Dynamic Extractors */}
-              <div className="space-y-3 bg-[#0a141d]/30 border border-teal-950/40 p-5 rounded-2xl">
-                <h3 className="text-xs font-bold text-teal-500 uppercase tracking-widest">
-                  🛠️ AI Extracted Targets
-                </h3>
-                <ul className="space-y-1.5 text-sm text-slate-300">
-                  {selectedApp.category === 'career' ? (
-                    selectedApp.requirements?.technical_skills?.map((skill) => (
-                      <li key={skill} className="flex items-center gap-2">
-                        <span className="text-xs text-teal-500">▪</span> {skill}
-                      </li>
-                    ))
-                  ) : (
-                    <>
-                      <li className="flex items-center gap-2">
-                        <span className="text-xs text-teal-500">▪</span> Minimum
-                        Academic GPA Target:{' '}
-                        {selectedApp.requirements?.gpa_threshold}
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <span className="text-xs text-teal-500">▪</span> Secondary
-                        Prerequisites:{' '}
-                        {selectedApp.requirements?.standardized_tests}
-                      </li>
-                    </>
-                  )}
-                </ul>
-              </div>
+                {/* AI Dynamic Extractors */}
+                <div className="space-y-3 bg-[#0a141d]/30 border border-teal-950/40 p-5 rounded-2xl">
+                  <h3 className="text-xs font-bold text-teal-500 uppercase tracking-widest">
+                    🛠️ AI Extracted Targets
+                  </h3>
+                  <ul className="space-y-1.5 text-sm text-slate-300">
+                    {selectedApp.category === 'career' ? (
+                      selectedApp.requirements?.technical_skills?.map((skill) => (
+                        <li key={skill} className="flex items-center gap-2">
+                          <span className="text-xs text-teal-500">▪</span> {skill}
+                        </li>
+                      ))
+                    ) : (
+                      <>
+                        <li className="flex items-center gap-2">
+                          <span className="text-xs text-teal-500">▪</span> Minimum
+                          Academic GPA Target:{' '}
+                          {selectedApp.requirements?.gpa_threshold}
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <span className="text-xs text-teal-500">▪</span>{' '}
+                          Secondary Prerequisites:{' '}
+                          {selectedApp.requirements?.standardized_tests}
+                        </li>
+                      </>
+                    )}
+                  </ul>
+                </div>
 
-              {/* User Editable Notes Section */}
-              <div className="space-y-2.5">
-                <label className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
-                  📝 Core Scraping Notes
-                </label>
-                <textarea
-                  value={selectedApp.notes || ''}
-                  onChange={(e) => handleNotesChange(e.target.value)}
-                  className="w-full h-32 p-4 rounded-2xl border border-teal-900/30 bg-[#060c12]/80 text-slate-300 text-sm focus:outline-none focus:border-teal-500/50 resize-none"
-                />
+                {/* User Editable Notes Section */}
+                <div className="space-y-2.5">
+                  <label className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
+                    📝 Core Scraping Notes
+                  </label>
+                  <textarea
+                    value={selectedApp.notes || ''}
+                    onChange={(e) => handleNotesChange(e.target.value)}
+                    placeholder="Add notes about this application..."
+                    className="w-full h-32 p-4 rounded-2xl border border-teal-900/30 bg-[#060c12]/80 text-slate-300 text-sm focus:outline-none focus:border-teal-500/50 resize-none"
+                  />
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="h-full flex items-center justify-center text-teal-800 text-sm font-medium tracking-wide">
-              Select an active entry to verify structural tracking information.
-            </div>
-          )}
+            ) : (
+              <div className="h-full flex items-center justify-center text-teal-800 text-sm font-medium tracking-wide">
+                Select an active entry to verify structural tracking information.
+              </div>
+            )}
+          </div>
         </section>
 
         {/* PANE 3: RIGHT ALIGNED METADATA PANEL */}
-        <section className="w-80 h-full bg-[#070e14] p-6 overflow-y-auto flex flex-col space-y-4">
-          {selectedApp ? (
-            <div className="flex flex-col space-y-4 bg-teal-950/10 border border-teal-500/10 p-5 rounded-2xl backdrop-blur-xl">
-              {/* LOCATION */}
-              <div className="flex items-center gap-3.5 border-b border-teal-900/20 pb-3">
-                <span className="text-lg">📍</span>
-                <div>
-                  <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
-                    Location
-                  </p>
-                  <p className="text-sm text-slate-200 font-medium">
-                    {selectedApp.location || 'Remote'}
-                  </p>
-                </div>
-              </div>
+        <section className={`w-80 ${paneCard}`}>
+          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            {selectedApp ? (
+              <>
+                <div className="flex flex-col space-y-4 bg-teal-950/10 border border-teal-500/10 p-5 rounded-2xl backdrop-blur-xl">
+                  {/* LOCATION */}
+                  <div className="flex items-center gap-3.5 border-b border-teal-900/20 pb-3">
+                    <span className="text-lg">📍</span>
+                    <div>
+                      <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                        Location
+                      </p>
+                      <p className="text-sm text-slate-200 font-medium">
+                        {selectedApp.location || 'Remote'}
+                      </p>
+                    </div>
+                  </div>
 
-              {/* CATEGORY */}
-              <div className="flex items-center gap-3.5 border-b border-teal-900/20 pb-3">
-                <span className="text-lg">🏷️</span>
-                <div>
-                  <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
-                    Category Type
-                  </p>
-                  <p className="text-sm text-slate-200 font-medium capitalize">
-                    {selectedApp.category}
-                  </p>
-                </div>
-              </div>
+                  {/* CATEGORY */}
+                  <div className="flex items-center gap-3.5 border-b border-teal-900/20 pb-3">
+                    <span className="text-lg">🏷️</span>
+                    <div>
+                      <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                        Category Type
+                      </p>
+                      <p className="text-sm text-slate-200 font-medium capitalize">
+                        {selectedApp.category}
+                      </p>
+                    </div>
+                  </div>
 
-              {/* APPLICATION DEADLINE */}
-              <div className="flex items-center gap-3.5 border-b border-teal-900/20 pb-3">
-                <span className="text-lg">📅</span>
-                <div>
-                  <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
-                    Application Closing Date
-                  </p>
-                  <p className="text-sm text-slate-200 font-medium">
-                    {selectedApp.application_deadline}
-                  </p>
+                  {/* APPLICATION DEADLINE */}
+                  <div className="flex items-center gap-3.5">
+                    <span className="text-lg">📅</span>
+                    <div>
+                      <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                        Deadline of Application
+                      </p>
+                      <p className="text-sm text-rose-400 font-bold">
+                        {formatLong(selectedApp.application_deadline)}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* ENFORCED INTERACTIVE CALENDAR PROMPT */}
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-3.5">
-                  <span className="text-lg">⏱️</span>
-                  <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                {/* PERSONAL COMPLETION DEADLINE + INLINE CALENDAR */}
+                <div className="flex flex-col gap-2 bg-teal-950/10 border border-teal-500/10 p-5 rounded-2xl backdrop-blur-xl">
+                  <div className="flex items-center gap-3.5">
+                    <span className="text-lg">⏱️</span>
+                    <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                      Personal Completion Deadline
+                    </p>
+                  </div>
+                  <p className="text-[11px] text-slate-400 pl-0.5">
                     When I want to complete this by
                   </p>
+
+                  {/* Selected value display */}
+                  <div className="px-3 py-2 rounded-xl bg-[#060c12] border border-teal-900/40 text-teal-200 text-sm font-semibold flex items-center justify-between">
+                    <span>
+                      {selectedApp.personal_completion_deadline
+                        ? formatLong(selectedApp.personal_completion_deadline)
+                        : 'Pick a date'}
+                    </span>
+                    <span className="text-teal-600">📆</span>
+                  </div>
+
+                  {/* Inline calendar — capped at the application deadline */}
+                  <Calendar
+                    value={selectedApp.personal_completion_deadline}
+                    max={selectedApp.application_deadline}
+                    onSelect={handleDateChange}
+                  />
+
+                  <p className="text-[10px] text-teal-700/70 pl-1">
+                    Goal date is capped at the official closing date.
+                  </p>
                 </div>
-                <input
-                  id="validated-date-input"
-                  type="date"
-                  value={selectedApp.personal_completion_deadline || ''}
-                  max={selectedApp.application_deadline}
-                  onChange={(e) => handleDateChange(e.target.value)}
-                  className="mt-2 px-3 py-2 rounded-xl bg-[#060c12] border border-teal-900/40 text-teal-200 text-xs font-semibold focus:outline-none focus:border-teal-400 w-full transition-all"
-                />
-                <p className="text-[10px] text-teal-700/70 pl-1">
-                  Goal date is capped at the official closing date.
-                </p>
+              </>
+            ) : (
+              <div className="h-full flex items-center justify-center text-teal-800 text-xs font-medium tracking-wide text-center">
+                Metadata appears here once an entry is selected.
               </div>
-            </div>
-          ) : (
-            <div className="h-full flex items-center justify-center text-teal-800 text-xs font-medium tracking-wide text-center">
-              Metadata appears here once an entry is selected.
-            </div>
-          )}
+            )}
+          </div>
         </section>
       </div>
     </div>
