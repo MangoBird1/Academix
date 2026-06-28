@@ -477,7 +477,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
         : 'bg-teal-950/50 border-teal-500/20 text-teal-400 hover:bg-teal-900'
     }`;
   const glassCard =
-    'bg-teal-950/10 border border-teal-500/10 p-5 rounded-2xl backdrop-blur-xl';
+    'bg-teal-950/10 border border-teal-500/10 p-4 rounded-xl backdrop-blur-xl';
 
   return (
     <div className="flex h-screen w-screen bg-[#070e14] text-cyan-50 font-sans overflow-hidden select-none">
@@ -560,17 +560,16 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
         {/* PANE 1: SEARCH AND INDEX TREE */}
         <section
           style={{ width: pane1Width }}
-          className={`shrink-0 ${paneCard} ${!sidebarOpen ? 'pt-12' : ''}`}
-        >
-          <div className="p-4 border-b border-teal-900/30 space-y-3">
+          className={`shrink-0 bg-[#e8f0f7] rounded-xl shadow-sm ${paneCard} ${!sidebarOpen ? 'pt-12' : ''}`}>
+          <div className="p-4 border-b border-[#e9e4dd] space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-200">
+              <h3 className="text-[#3a3a3a] font-semibold tracking-normal">
                 Applications{' '}
-                <span className="text-teal-500/80">({applications.length})</span>
+                <span className="text-[#5f8f8b]">({applications.length})</span>
               </h3>
               <button
                 onClick={handleNewApplication}
-                className="px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-semibold hover:bg-teal-500/20 transition"
+                className="px-3 py-1.5 rounded-lg bg-[#a3c9c7] border text-[#3a3a3a] border border-[#7aa7a3]/40 text-xs font-semibold hover:bg-[#7aa7a3] transition"
               >
                 + New
               </button>
@@ -580,38 +579,38 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search title, company, category..."
-              className="w-full px-4 py-2 border border-teal-900/30 rounded-xl text-sm bg-[#060c12] text-teal-100 placeholder-teal-800/40 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/30"
+              className="w-full px-4 py-2 border border-teal-900/30 rounded-xl text-sm bg-[#faf7f3] text-[#5a5a5a] placeholder-[#7a7a7a] border-[#e9e4dd] focus:border-[#7aa7a3] focus:ring-[#7aa7a3]/40"
             />
             <div className="flex items-center justify-between text-xs text-teal-600/80 font-medium px-1">
               <span>Sort Strategy:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-transparent font-bold text-teal-400 cursor-pointer focus:outline-none hover:text-teal-300 transition"
+                className="bg-transparent font-bold text-[#3f6f6b] cursor-pointer focus:outline-none hover:text-[#5f8f8b] transition"
               >
                 <option value="application_deadline" className="bg-[#0a141d]">
                   Deadline of Application
                 </option>
                 <option
                   value="personal_completion_deadline"
-                  className="bg-[#0a141d]"
+                  className="bg-[#faf7f3]"
                 >
                   Personal Goal Deadline
                 </option>
               </select>
             </div>
-            <div className="flex items-center justify-between text-xs text-teal-600/80 font-medium px-1">
+            <div className="flex items-center justify-between text-xs text-[#5f8f8b] font-medium px-1">
               <span>Filter:</span>
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="bg-transparent font-bold text-teal-400 cursor-pointer focus:outline-none hover:text-teal-300 transition"
-              >
-                <option value="all" className="bg-[#0a141d]">
+                className="bg-transparent font-bold text-[#3f6f6b] cursor-pointer focus:outline-none hover:text-[#5f8f8b] transition"
+                >
+                <option value="all" className="bg-[#faf7f3]">
                   All
                 </option>
                 {existingCategories.map((cat) => (
-                  <option key={cat} value={cat} className="bg-[#0a141d]">
+                  <option key={cat} value={cat} className="bg-[#faf7f3]">
                     {titleCase(cat)}
                   </option>
                 ))}
@@ -628,12 +627,12 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                   onClick={() => setActiveId(app.id)}
                   className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
                     isActive
-                      ? 'bg-gradient-to-br from-teal-950/40 to-cyan-950/20 border-teal-500/50 shadow-lg shadow-teal-500/10'
-                      : 'bg-[#0b141d]/40 border-teal-950/40 hover:bg-teal-950/10 hover:border-teal-900/50'
+                      ? 'bg-[#faf7f3] border-[#d7b89c] shadow-sm'
+                      : 'bg-white border-[#e9e4dd] hover:bg-[#f3eee8]'
                   }`}
                 >
                   <div className="flex justify-between items-start gap-2">
-                    <h4 className="font-bold text-sm text-slate-200 truncate">
+                    <h4 className="font-bold text-sm text-[#3a3a3a] truncate">
                       {app.title}
                     </h4>
                     <div className="flex items-center gap-1.5 shrink-0">
@@ -645,27 +644,27 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                         {categoryTagLabel(app.category)}
                       </span>
                       {isActive && (
-                        <span className="h-4 w-4 flex items-center justify-center rounded-full bg-teal-500 text-[9px] text-[#04121a] font-black">
+                        <span className="h-4 w-4 flex items-center justify-center rounded-full bg-[#7aa7a3] text-white font-black">
                           ✓
                         </span>
                       )}
                     </div>
                   </div>
-                  <p className="text-xs text-slate-400 truncate mt-1">
+                  <p className="text-xs text-[#7a7a7a] truncate mt-1">
                     {app.organization_name}
                   </p>
                   <div className="mt-2.5 space-y-1">
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                    <div className="flex items-center gap-1.5 text-[11px] text-[#7a7a7a]">
                       <span>📅</span>
                       <span>Deadline:</span>
-                      <span className="text-rose-400/90 font-medium">
+                      <span className="text-[#b08968] font-medium">
                         {formatLong(app.application_deadline)}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                    <div className="flex items-center gap-1.5 text-[11px] text-[#7a7a7a]">
                       <span>⏱️</span>
                       <span>Goal:</span>
-                      <span className="text-teal-400/90 font-medium">
+                      <span className="text-[#5f8f8b] font-medium">
                         {formatLong(app.personal_completion_deadline)}
                       </span>
                     </div>
@@ -675,7 +674,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
             })}
 
             {visibleApplications.length === 0 && (
-              <div className="px-3 py-8 text-center text-xs text-teal-800/70 font-medium">
+              <div className="px-3 py-8 text-center text-xs text-[#7a7a7a] font-medium">
                 No applications match your filters.
               </div>
             )}
@@ -692,7 +691,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
 
         {/* PANE 2: MAIN DATA & NOTE DESCRIPTION CANVAS */}
         <section className={`flex-1 min-w-0 ${paneCard}`}>
-          <div className="flex-1 overflow-y-auto p-8 bg-[#f7f4ef]/20">
+          <div className="flex-1 overflow-y-auto p-8 bg-[#c3d8cf] rounded-xl shadow-sm">
             {selectedApp ? (
               <div className="space-y-5">
                 {/* Editable title + company */}
@@ -701,30 +700,30 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     value={selectedApp.title}
                     onChange={(e) => patch({ title: e.target.value })}
                     placeholder="Job / programme title"
-                    className="w-full bg-transparent text-2xl font-black tracking-tight text-white focus:outline-none focus:bg-[#060c12]/60 rounded-lg px-1 -ml-1 transition"
+                    className="w-full bg-transparent text-2xl font-semibold tracking-normal text-[#4a4a4a]"
                   />
                   <input
                     value={selectedApp.organization_name}
                     onChange={(e) => patch({ organization_name: e.target.value })}
                     placeholder="Organization / company"
-                    className="w-full bg-transparent text-lg font-semibold text-teal-300 focus:outline-none focus:bg-[#060c12]/60 rounded-lg px-1 -ml-1 transition"
+                    className="w-full bg-transparent text-lg font-semibold text-[#5f8f8b] focus:outline-none focus:bg-[#f3eee8] rounded-lg px-1 -ml-1 transition"
                   />
                   {/* Optional organization/program overview, under the org name */}
-                  <span className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
+                  <span className="text-xs font-bold text-[#7aa7a3] uppercase tracking-wide block pl-1">
                     {overviewLabel}
                   </span>
                   <textarea
                     value={selectedApp.org_description || ''}
                     onChange={(e) => patch({ org_description: e.target.value })}
                     placeholder="Organization description (optional)"
-                    className={`${resizableArea} h-12 min-h-[2.5rem] !rounded-xl text-xs text-slate-400`}
+                    className={`${resizableArea} h-12 min-h-[2.5rem] !rounded-xl text-xs text-[#7a7a7a]`}
                   />
                 </div>
 
                 {/* Status / Priority / Application Method — inline label + button */}
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-bold text-teal-500 uppercase tracking-widest w-40 shrink-0">
+                    <span className="text-[10px] font-bold text-[#7aa7a3] uppercase tracking-wide w-40 shrink-0">
                       Status:
                     </span>
                     <StatusSelector
@@ -735,7 +734,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     />
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-bold text-teal-500 uppercase tracking-widest w-40 shrink-0">
+                    <span className="text-[10px] font-bold text-[#7aa7a3] uppercase tracking-wide w-40 shrink-0">
                       Priority:
                     </span>
                     <PrioritySelector
@@ -746,7 +745,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     />
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-bold text-teal-500 uppercase tracking-widest w-40 shrink-0">
+                    <span className="text-[10px] font-bold text-[#7aa7a3] uppercase tracking-wide w-40 shrink-0">
                       Application Method:
                     </span>
                     <ApplicationMethodSelector
@@ -762,7 +761,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
 
                 {/* Description (resizable) — label adapts to category */}
                 <div className="space-y-2">
-                  <span className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
+                  <span className="text-xs font-bold text-[#7aa7a3] uppercase tracking-wide block pl-1">
                     {descriptionLabel}
                   </span>
                   <textarea
@@ -776,7 +775,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                 {/* Editable, resizable Source URL */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between pl-1 pr-0.5">
-                    <span className="text-xs font-bold text-teal-500 uppercase tracking-widest">
+                    <span className="text-xs font-bold text-[#7aa7a3] uppercase tracking-wide">
                       Source URL
                     </span>
                     {selectedApp.source_url ? (
@@ -784,7 +783,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                         href={selectedApp.source_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[10px] text-cyan-400 hover:text-cyan-200 transition"
+                        className="text-[10px] text-[#5f8f8b] hover:text-[#3f6f6b] transition"
                       >
                         Open ↗
                       </a>
@@ -797,25 +796,25 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     }
                     rows={1}
                     placeholder="https://..."
-                    className={`${resizableArea} h-12 min-h-[3rem] !rounded-xl text-cyan-300/80`}
+                    className={`${resizableArea} h-12 min-h-[3rem] !rounded-xl text-[#7a7a7a]`}
                   />
                 </div>
 
                 {/* AI Extracted Skills */}
-                <div className="space-y-3 bg-[#0a141d]/30 border border-teal-950/40 p-5 rounded-2xl">
-                  <h3 className="text-xs font-bold text-teal-500 uppercase tracking-widest">
+                <div className="space-y-3 bg-[#faf7f3] border border-[#e9e4dd] p-5 rounded-2xl">
+                  <h3 className="text-xs font-bold text-[#7aa7a3] uppercase tracking-wide">
                     🛠️ AI Extracted Skills
                   </h3>
-                  <ul className="space-y-1.5 text-sm text-slate-300">
+                  <ul className="space-y-1.5 text-sm text-[#5a5a5a]">
                     {selectedApp.category === 'education' ? (
                       <>
                         <li className="flex items-center gap-2">
-                          <span className="text-xs text-teal-500">▪</span> Minimum
+                          <span className="text-xs text-[#7aa7a3]">▪</span> Minimum
                           Academic GPA Target:{' '}
                           {selectedApp.requirements?.gpa_threshold || '—'}
                         </li>
                         <li className="flex items-center gap-2">
-                          <span className="text-xs text-teal-500">▪</span>{' '}
+                          <span className="text-xs text-[#7aa7a3]">▪</span>{' '}
                           Secondary Prerequisites:{' '}
                           {selectedApp.requirements?.standardized_tests || '—'}
                         </li>
@@ -823,11 +822,11 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     ) : selectedApp.requirements?.technical_skills?.length ? (
                       selectedApp.requirements.technical_skills.map((skill) => (
                         <li key={skill} className="flex items-center gap-2">
-                          <span className="text-xs text-teal-500">▪</span> {skill}
+                          <span className="text-xs text-[#7aa7a3]">▪</span> {skill}
                         </li>
                       ))
                     ) : (
-                      <li className="text-xs text-slate-500 italic">
+                      <li className="text-xs text-[#7a7a7a] italic">
                         No extracted skills yet.
                       </li>
                     )}
@@ -836,7 +835,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
 
                 {/* Core Scraping Notes (resizable) */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
+                  <label className="text-[#7aa7a3] uppercase tracking-wide">
                     📝 Core Scraping Notes
                   </label>
                   <textarea
@@ -849,7 +848,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
 
                 {/* My Notes (resizable) */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
+                  <label className="text-[#7aa7a3] uppercase tracking-wide">
                     🗒️ My Notes
                   </label>
                   <textarea
@@ -861,7 +860,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                 </div>
               </div>
             ) : (
-              <div className="h-full flex items-center justify-center text-teal-800 text-sm font-medium tracking-wide">
+              <div className="h-full flex items-center justify-center text-[#5f8f8b] text-sm font-medium tracking-wide">
                 Select an active entry to verify structural tracking information.
               </div>
             )}
@@ -878,7 +877,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
 
         {/* PANE 3: RIGHT SIDEBAR — Status, Priority, Method, Location,
             Category, Deadlines, Tasks (in this order) */}
-        <section style={{ width: pane3Width }} className={`shrink-0 ${paneCard}`}>
+        <section style={{ width: pane3Width }} className={`shrink-0 bg-[#d7e1ea] rounded-xl shadow-sm ${paneCard} ${!sidebarOpen ? 'pt-12' : ''}`}>
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {selectedApp ? (
               <>
@@ -905,7 +904,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
 
                 {/* DEADLINES */}
                 <div className={`flex flex-col gap-4 ${glassCard}`}>
-                  <span className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                  <span className="text-[10px] font-bold text-[#7aa7a3] uppercase tracking-wide">
                     Deadlines:
                   </span>
 
@@ -915,7 +914,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                       <div className="flex items-center gap-3">
                         <span className="text-lg">📅</span>
                         <div>
-                          <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                          <p className="text-[10px] font-bold text-[#7aa7a3] uppercase tracking-wide">
                             Deadline of Application
                           </p>
                           <p className="text-sm text-rose-400 font-bold">
@@ -952,7 +951,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                       <div className="flex items-center gap-3">
                         <span className="text-lg">⏱️</span>
                         <div>
-                          <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                          <p className="text-[10px] font-bold text-[#7aa7a3] uppercase tracking-wide">
                             Personal Completion Deadline
                           </p>
                           <p className="text-sm text-teal-200 font-bold">
@@ -993,7 +992,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                 {/* TASKS */}
                 <div className={`flex flex-col gap-3 ${glassCard}`}>
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                    <span className="text-[10px] font-bold text-[#7aa7a3] uppercase tracking-wide">
                       Tasks:
                     </span>
                     <span className="text-xs font-bold text-teal-300">
@@ -1126,7 +1125,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                       />
                     </FieldGroup>
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+                      <span className="text-[10px] font-bold text-[#7aa7a3] uppercase tracking-wide">
                         Reminder:
                       </span>
                       <button

@@ -119,7 +119,7 @@ function MetadataSelector({
               maxHeight: pos.maxHeight,
               ...(pos.top !== undefined ? { top: pos.top } : { bottom: pos.bottom }),
             }}
-            className="z-[1000] flex flex-col rounded-xl border border-teal-500/20 bg-[#0a141d]/95 backdrop-blur-md shadow-xl shadow-black/40 p-1.5 overflow-hidden"
+            className="z-[1000] flex flex-col rounded-xl border border-[#e9e4dd] bg-[#faf7f3] shadow-md p-1.5 overflow-hidden"
           >
             <div className="flex items-center gap-1 mb-1 pb-1.5 border-b border-teal-900/40 shrink-0">
               <input
@@ -130,12 +130,12 @@ function MetadataSelector({
                   if (e.key === 'Enter') commit();
                 }}
                 placeholder={predictive ? 'Search or add...' : 'Add custom label...'}
-                className="flex-1 min-w-0 px-2 py-1 rounded-md bg-[#060c12] border border-teal-900/40 text-[11px] text-teal-100 placeholder-teal-800/50 focus:outline-none focus:border-teal-500/50"
+                className="flex-1 min-w-0 px-2 py-1 rounded-md bg-[#faf7f3] border border-[#e9e4dd] text-[11px] text-[#5a5a5a] placeholder-[#7a7a7a] focus:outline-none focus:border-[#7aa7a3]"
               />
               <button
                 type="button"
                 onClick={commit}
-                className="px-2 py-1 rounded-md bg-teal-500/10 border border-teal-500/30 text-teal-300 text-[11px] font-bold hover:bg-teal-500/20 transition"
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#a3c9c7] border border-[#7aa7a3]/40 px-3 py-1 text-[11px] font-semibold text-[#3a3a3a] hover:bg-[#7aa7a3] transition"
                 aria-label="Add or select"
               >
                 +
@@ -153,15 +153,15 @@ function MetadataSelector({
                   }}
                   className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] transition ${
                     normalize(opt) === normalize(value)
-                      ? 'bg-teal-500/15 text-teal-200'
-                      : 'text-slate-300 hover:bg-teal-900/40'
+                      ? 'bg-[#7aa7a3] text-white'
+                      : 'text-[#5a5a5a] hover:bg-[#cddcc7]/40'
                   }`}
                 >
                   {format(opt)}
                 </button>
               ))}
               {filtered.length === 0 && (
-                <div className="px-2.5 py-1.5 text-[11px] text-slate-500 italic">
+                <div className="px-2 py-1 rounded-md bg-[#a3c9c7] border border-[#7aa7a3]/40 text-[#3a3a3a] text-[11px] font-bold hover:bg-[#7aa7a3] transition">
                   Press + to add “{text.trim()}”
                 </div>
               )}
@@ -192,7 +192,7 @@ function MetadataSelector({
 export function FieldGroup({ label, children }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+      <span className="text-[10px] font-bold text-[#7aa7a3] uppercase tracking-wide">
         {label}:
       </span>
       {children}
