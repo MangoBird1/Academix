@@ -17,6 +17,7 @@ import {
   titleCase,
 } from '@/components/MetadataSection';
 import { normalizeLocation } from '@/lib/locationFormat';
+import { extractFromUrl, buildScrapePatch } from '@/lib/scrapeClient';
 
 const formatLong = (iso) => {
   if (!iso) return '—';
@@ -416,6 +417,27 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     setNewTaskText('');
   };
 
+  // ---- source-URL auto-extraction (webscraping) ----------------------------
+  // Runs when the user finishes entering / updating the Source URL. Fetches the
+  // posting, parses it, and fills only EMPTY fields (never overwrites notes or
+  // user-entered data). Failures are swallowed so the UI is never disrupted.
+  const handleScrapeSourceUrl = useCallback(
+    async (id, url, snapshot) => {
+      const trimmed = (url || '').trim();
+      if (!id || !/^https?:\/\//i.test(trimmed)) return;
+      try {
+        const extracted = await extractFromUrl(trimmed);
+        const patch = buildScrapePatch(snapshot || {}, extracted);
+        if (Object.keys(patch).length) {
+          updateApplication(id, patch);
+        }
+      } catch {
+        /* network / parse errors are non-fatal — leave fields untouched */
+      }
+    },
+    [updateApplication]
+  );
+
   const tasks = selectedApp?.tasks || [];
   const doneCount = tasks.filter((t) => t.done).length;
 
@@ -750,6 +772,13 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     value={selectedApp.source_url || ''}
                     onChange={(e) =>
                       patch({ source_url: e.target.value.replace(/\n/g, '') })
+                    }
+                    onBlur={(e) =>
+                      handleScrapeSourceUrl(
+                        selectedApp.id,
+                        e.target.value,
+                        selectedApp
+                      )
                     }
                     rows={1}
                     placeholder="https://..."

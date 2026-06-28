@@ -2,6 +2,40 @@ import { NextResponse } from 'next/server';
 
 import { addApplication } from '@/lib/applicationsService';
 import { isFirebaseConfigured } from '@/lib/firebase';
+import { parsePosting } from '@/lib/scrapeParser';
+
+export const runtime = 'nodejs';
+
+// Best-effort fetch + Cheerio parse of a source URL. Returns a partial of the
+// `extracted` shape so the normaliser below can use real page data when only a
+// `source_url` was provided (no pre-extracted payload).
+async function fetchAndExtract(url) {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return {};
+  } catch {
+    return {};
+  }
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    const res = await fetch(url, {
+      signal: controller.signal,
+      redirect: 'follow',
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (compatible; AcademixBot/1.0; +https://academix.app)',
+        Accept: 'text/html,application/xhtml+xml',
+      },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return {};
+    const html = await res.text();
+    return parsePosting(html, url);
+  } catch {
+    return {};
+  }
+}
 
 // POST /api/scrape
 //
@@ -85,6 +119,23 @@ export async function POST(request) {
       { ok: false, error: 'A `source_url` is required.' },
       { status: 400 }
     );
+  }
+
+  // When no pre-extracted payload is supplied, scrape the URL ourselves so the
+  // record is populated from real page data. Missing fields are handled
+  // gracefully by both the parser and the normaliser below.
+  if (!body.extracted || Object.keys(body.extracted).length === 0) {
+    const scraped = await fetchAndExtract(body.source_url);
+    body.extracted = {
+      title: scraped.title,
+      company: scraped.organization_name,
+      org_description: scraped.org_description,
+      description: scraped.description,
+      location: scraped.location,
+      deadline: scraped.application_deadline,
+      skills: scraped.skills,
+      summary: scraped.notes,
+    };
   }
 
   const application = normalizePayload(body);

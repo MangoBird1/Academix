@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useApplications } from '@/lib/useApplications';
 import { seedApplications } from '@/lib/seedData';
-import { titleCase } from '@/components/MetadataSection';
+import { computeAnalytics } from '@/lib/analytics';
 
 const card =
   'bg-[#faf7f3] border border-[#e9e4dd] rounded-2xl p-6 shadow-sm';
@@ -48,73 +48,12 @@ function BarChart({ rows, max }) {
   );
 }
 
-function monthKey(iso) {
-  if (!iso) return null;
-  const [y, m] = iso.split('-');
-  return y && m ? `${y}-${m}` : null;
-}
-
 export default function AnalyticsPage() {
   const { applications } = useApplications(seedApplications);
 
-  const stats = useMemo(() => {
-    const byCategory = {};
-    const byStatus = {};
-    const skillFreq = {};
-    const timelineByMonth = {};
-    const deadlinesByMonth = {};
-
-    applications.forEach((app) => {
-      const cat = (app.category || 'other').toLowerCase();
-      byCategory[cat] = (byCategory[cat] || 0) + 1;
-
-      const status = (app.status || 'Unknown').trim();
-      byStatus[status] = (byStatus[status] || 0) + 1;
-
-      const skills = [
-        ...(app.requirements?.technical_skills || []),
-        ...(app.custom_skills || []),
-      ];
-      skills.forEach((s) => {
-        skillFreq[s] = (skillFreq[s] || 0) + 1;
-      });
-
-      (app.timeline || []).forEach((ev) => {
-        const mk = monthKey(ev.date);
-        if (mk) timelineByMonth[mk] = (timelineByMonth[mk] || 0) + 1;
-      });
-
-      const dmk = monthKey(app.application_deadline);
-      if (dmk) deadlinesByMonth[dmk] = (deadlinesByMonth[dmk] || 0) + 1;
-    });
-
-    const toRows = (obj, formatter = (k) => k) =>
-      Object.entries(obj)
-        .sort((a, b) => b[1] - a[1])
-        .map(([k, v]) => ({ label: formatter(k), value: v }));
-
-    const outcomeRows = toRows(
-      applications.reduce((acc, app) => {
-        const o = app.outcome || 'None';
-        acc[o] = (acc[o] || 0) + 1;
-        return acc;
-      }, {})
-    );
-
-    return {
-      total: applications.length,
-      categoryRows: toRows(byCategory, (k) => titleCase(k)),
-      statusRows: toRows(byStatus),
-      outcomeRows,
-      skillRows: toRows(skillFreq).slice(0, 10),
-      timelineRows: Object.entries(timelineByMonth)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([k, v]) => ({ label: k, value: v })),
-      deadlineRows: Object.entries(deadlinesByMonth)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([k, v]) => ({ label: k, value: v })),
-    };
-  }, [applications]);
+  // Always derived from the live application data — recomputes whenever an
+  // application (or its skills / timeline) is added, edited, patched or removed.
+  const stats = useMemo(() => computeAnalytics(applications), [applications]);
 
   return (
     <div className="flex-1 overflow-y-auto p-6 md:p-10">
@@ -132,13 +71,11 @@ export default function AnalyticsPage() {
             <p className={statLabel}>Total applications</p>
           </div>
           <div className={`${card} text-center`}>
-            <p className={statValue}>{stats.categoryRows.length}</p>
+            <p className={statValue}>{stats.categoriesTracked}</p>
             <p className={statLabel}>Categories tracked</p>
           </div>
           <div className={`${card} text-center`}>
-            <p className={statValue}>
-              {stats.timelineRows.reduce((s, r) => s + r.value, 0)}
-            </p>
+            <p className={statValue}>{stats.timelineEventCount}</p>
             <p className={statLabel}>Timeline events</p>
           </div>
         </div>
