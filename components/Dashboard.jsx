@@ -75,17 +75,24 @@ const READ = {
     'text-xs font-bold uppercase tracking-wide leading-snug text-[#7aa7a3]',
   p2LabelSm:
     'text-[10px] font-bold uppercase tracking-wide leading-snug text-[#7aa7a3]',
-  p2Company: 'text-[#3a3a3a] font-medium leading-relaxed',
+  p2Company: 'text-[#2f2f2f] font-semibold leading-relaxed tracking-wide',
   p3Label:
     'text-[10px] font-semibold uppercase tracking-wide leading-snug text-[#7aa7a3]',
-  p3Primary: 'text-[#3a3a3a] font-medium leading-relaxed',
-  p3Secondary: 'text-[#5a5a5a] leading-relaxed',
-  p3Accent: 'text-[#5f8f8b] font-medium leading-relaxed',
+  p3Primary: 'text-[#2f2f2f] font-medium leading-relaxed',
+  p3Secondary: 'text-[#3a3a3a] leading-relaxed',
+  p3Accent: 'text-[#5f8f8b] font-semibold leading-relaxed',
   p3Espresso: 'text-[#b08968] font-semibold leading-relaxed',
-  p3Meta: 'text-[11px] text-[#5a5a5a] leading-relaxed',
-  p3Selector: 'text-[#3a3a3a] font-medium leading-relaxed',
-  p3Chevron: 'text-[#5a5a5a] text-xs leading-relaxed',
+  p3DeadlineRed: 'text-[#c75c5c] font-semibold leading-relaxed',
+  p3DeadlineGreen: 'text-[#6fa87a] font-semibold leading-relaxed',
+  p3Meta: 'text-[11px] text-[#3a3a3a] leading-relaxed',
+  p3Selector: 'text-[#2f2f2f] font-medium leading-relaxed',
+  p3Chevron: 'text-[#3a3a3a] text-xs leading-relaxed',
+  p3TimelineDate: 'text-[#3a3a3a] font-medium leading-relaxed',
 };
+const p3Input =
+  'bg-[#f7fafc] text-[#2f2f2f] leading-relaxed';
+const p3AddBtn =
+  'bg-teal-500/15 border-teal-500/40 text-[#2f2f2f] font-semibold';
 const p3Collapse = {
   titleClassName: READ.p3Label,
   chevronClassName: READ.p3Chevron,
@@ -94,15 +101,15 @@ const p3Collapse = {
 const skillLabelStyle = (label) => {
   switch (label) {
     case 'Strong':
-      return 'bg-emerald-950/60 text-[#5f8f8b] font-medium border-emerald-500/30';
+      return 'bg-emerald-950/60 text-[#2f2f2f] font-semibold border-emerald-500/30';
     case 'Needs Improvement':
-      return 'bg-amber-950/60 text-[#7aa7a3] font-medium border-amber-500/30';
+      return 'bg-amber-950/60 text-[#2f2f2f] font-semibold border-amber-500/30';
     case 'Add to Resume':
-      return 'bg-cyan-950/60 text-[#5f8f8b] font-medium border-cyan-500/30';
+      return 'bg-cyan-950/60 text-[#2f2f2f] font-semibold border-cyan-500/30';
     case 'Add to Portfolio':
-      return 'bg-purple-950/60 text-[#7aa7a3] font-medium border-purple-500/30';
+      return 'bg-purple-950/60 text-[#2f2f2f] font-semibold border-purple-500/30';
     default:
-      return 'bg-teal-950/40 text-[#3a3a3a] font-medium border-teal-500/20';
+      return 'bg-teal-950/40 text-[#2f2f2f] font-semibold border-teal-500/20';
   }
 };
 
@@ -491,7 +498,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     'flex flex-col h-full rounded-2xl border border-teal-500/15 bg-[#0a141d]/50 shadow-xl shadow-black/30 ring-1 ring-inset ring-white/[0.02] overflow-hidden';
   // Resizable content textareas (drag the bottom-right corner: resize:both).
   const resizableArea =
-    'w-full max-w-full p-4 rounded-2xl border border-teal-900/30 bg-[#060c12]/80 text-slate-300 text-sm focus:outline-none focus:border-teal-500/50 resize overflow-auto';
+    'w-full max-w-full p-4 rounded-2xl border border-teal-900/30 bg-[#f7fafc] text-[#2f2f2f] text-sm leading-relaxed focus:outline-none focus:border-teal-500/50 resize overflow-auto';
   const calBtn = (active) =>
     `h-8 w-8 shrink-0 flex items-center justify-center rounded-lg border text-sm transition ${
       active
@@ -738,7 +745,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     value={selectedApp.org_description || ''}
                     onChange={(e) => patch({ org_description: e.target.value })}
                     placeholder="Organization description (optional)"
-                    className={`${resizableArea} h-12 min-h-[2.5rem] !rounded-xl text-xs text-[#7a7a7a]`}
+                    className={`${resizableArea} h-12 min-h-[2.5rem] !rounded-xl text-[#3a3a3a]`}
                   />
                 </div>
 
@@ -818,7 +825,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     }
                     rows={1}
                     placeholder="https://..."
-                    className={`${resizableArea} h-12 min-h-[3rem] !rounded-xl text-[#7a7a7a]`}
+                    className={`${resizableArea} h-12 min-h-[3rem] !rounded-xl text-[#3a3a3a]`}
                   />
                 </div>
 
@@ -939,7 +946,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                           <p className={READ.p3Label}>
                             Deadline of Application
                           </p>
-                          <p className={`text-sm ${READ.p3Espresso}`}>
+                          <p className={`text-sm ${READ.p3DeadlineRed}`}>
                             {formatLong(selectedApp.application_deadline)}
                           </p>
                         </div>
@@ -976,7 +983,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                           <p className={READ.p3Label}>
                             Personal Completion Deadline
                           </p>
-                          <p className={`text-sm ${READ.p3Espresso}`}>
+                          <p className={`text-sm ${READ.p3DeadlineGreen}`}>
                             {selectedApp.personal_completion_deadline
                               ? formatLong(
                                   selectedApp.personal_completion_deadline
@@ -1083,11 +1090,11 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                         if (e.key === 'Enter') handleAddTask();
                       }}
                       placeholder="Add a task..."
-                      className="flex-1 px-3 py-1.5 rounded-lg bg-[#060c12] border border-teal-900/40 text-teal-100 text-xs focus:outline-none focus:border-teal-500/50"
+                      className={`flex-1 px-3 py-1.5 rounded-lg border border-teal-900/40 text-xs focus:outline-none focus:border-teal-500/50 ${p3Input}`}
                     />
                     <button
                       onClick={handleAddTask}
-                      className="px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-semibold hover:bg-teal-500/20 transition"
+                      className={`px-3 py-1.5 rounded-lg border text-xs hover:bg-teal-500/20 transition ${p3AddBtn}`}
                     >
                       Add
                     </button>
@@ -1120,7 +1127,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                               c === 'followup' ? null : 'followup'
                             )
                           }
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#060c12] text-xs transition ${READ.p3Selector} ${
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition ${p3Input} ${READ.p3Selector} ${
                             selectedApp.follow_up_reminder
                               ? 'border border-teal-400/60 ring-1 ring-teal-400/40'
                               : 'border border-teal-900/40 hover:border-teal-500/50'
@@ -1197,7 +1204,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                           value={selectedApp.contacts?.[f.key] || ''}
                           onChange={(e) => patchContact(f.key, e.target.value)}
                           placeholder={f.label}
-                          className={`w-full px-3 py-1.5 rounded-lg bg-[#060c12]/80 border border-teal-900/40 text-xs focus:outline-none focus:border-teal-500/50 transition ${READ.p3Primary}`}
+                          className={`w-full px-3 py-1.5 rounded-lg border border-teal-900/40 text-xs focus:outline-none focus:border-teal-500/50 transition ${p3Input}`}
                         />
                       </FieldGroup>
                     ))}
@@ -1230,7 +1237,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                           >
                             {skill}
                             {skillLabels[skill] ? (
-                              <span className="opacity-70">
+                              <span className="text-[#3a3a3a] font-medium">
                                 · {skillLabels[skill]}
                               </span>
                             ) : null}
@@ -1260,11 +1267,11 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                           if (e.key === 'Enter') addCustomSkill();
                         }}
                         placeholder="Add a skill..."
-                        className={`flex-1 px-3 py-1.5 rounded-lg bg-[#060c12] border border-teal-900/40 text-xs focus:outline-none focus:border-teal-500/50 ${READ.p3Primary}`}
+                        className={`flex-1 px-3 py-1.5 rounded-lg border border-teal-900/40 text-xs focus:outline-none focus:border-teal-500/50 ${p3Input}`}
                       />
                       <button
                         onClick={addCustomSkill}
-                        className={`px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/30 text-xs font-semibold hover:bg-teal-500/20 transition ${READ.p3Accent}`}
+                        className={`px-3 py-1.5 rounded-lg border text-xs hover:bg-teal-500/20 transition ${p3AddBtn}`}
                       >
                         Add
                       </button>
@@ -1297,10 +1304,10 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                             )}
                           </div>
                           <div className="flex-1 -mt-0.5">
-                            <p className={`text-sm ${READ.p3Primary}`}>
+                            <p className={`text-sm font-semibold ${READ.p3Primary}`}>
                               {ev.label}
                             </p>
-                            <p className={`text-[11px] ${READ.p3Accent}`}>
+                            <p className={`text-[11px] ${READ.p3TimelineDate}`}>
                               {formatLong(ev.date)}
                             </p>
                           </div>
@@ -1325,7 +1332,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                           <button
                             key={s}
                             onClick={() => setNewTimelineLabel(s)}
-                            className={`px-2 py-0.5 rounded-full bg-teal-950/40 border border-teal-500/20 text-[10px] hover:bg-teal-900/40 transition ${READ.p3Accent}`}
+                            className="px-2 py-0.5 rounded-full bg-teal-950/40 border border-teal-500/20 text-[10px] text-[#2f2f2f] font-medium leading-relaxed hover:bg-teal-900/40 transition"
                           >
                             {s}
                           </button>
@@ -1338,7 +1345,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                           value={newTimelineLabel}
                           onChange={(e) => setNewTimelineLabel(e.target.value)}
                           placeholder="Event"
-                          className={`flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-[#060c12] border border-teal-900/40 text-xs focus:outline-none focus:border-teal-500/50 ${READ.p3Primary}`}
+                          className={`flex-1 min-w-0 px-3 py-1.5 rounded-lg border border-teal-900/40 text-xs focus:outline-none focus:border-teal-500/50 ${p3Input}`}
                         />
                         <button
                           onClick={() =>
@@ -1346,14 +1353,14 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                               c === 'timeline' ? null : 'timeline'
                             )
                           }
-                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#060c12] border border-teal-900/40 text-xs hover:border-teal-500/50 transition ${READ.p3Selector}`}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-teal-900/40 text-xs hover:border-teal-500/50 transition ${p3Input} ${READ.p3Selector}`}
                         >
                           <span>📆</span>
                           {formatLong(newTimelineDate)}
                         </button>
                         <button
                           onClick={addTimelineEvent}
-                          className={`px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/30 text-xs font-semibold hover:bg-teal-500/20 transition ${READ.p3Accent}`}
+                          className={`px-3 py-1.5 rounded-lg border text-xs hover:bg-teal-500/20 transition ${p3AddBtn}`}
                         >
                           Add
                         </button>
