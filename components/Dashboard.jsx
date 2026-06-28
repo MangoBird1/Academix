@@ -36,10 +36,13 @@ const normalizeCategory = (cat) => (cat || '').trim().toLowerCase();
 
 const categoryTagStyles = (cat) => {
   const c = normalizeCategory(cat);
-  if (c === 'career') return 'bg-cyan-950/60 text-cyan-400 border border-cyan-500/20';
-  if (c === 'education') return 'bg-purple-950/60 text-purple-400 border border-purple-500/20';
-  return 'bg-teal-950/60 text-teal-300 border border-teal-500/20';
+  if (c === 'career')
+    return 'bg-[#a3c9c7] text-[#3f6f6b] border border-[#7aa7a3]/40'; // pastel mint + espresso teal
+  if (c === 'education')
+    return 'bg-[#cddcc7] text-[#5f8f8b] border border-[#b7c9b0]/40'; // eucalyptus + deep teal
+  return 'bg-[#e9e4dd] text-[#5a5a5a] border border-[#d7b89c]/40'; // parchment + warm gray
 };
+
 
 // Categories are stored lowercase but shown in Title Case.
 const categoryTagLabel = (cat) => titleCase(normalizeCategory(cat)) || 'Other';
@@ -481,17 +484,17 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
       {/* 0. SIDEBAR PANEL (resizable width; shifts panes; collapses left) */}
       <aside
         style={{ width: sidebarOpen ? sidebarWidth : 0 }}
-        className={`relative shrink-0 bg-[#0a141d]/90 border-r border-teal-900/30 flex flex-col backdrop-blur-md ${
+        className={`relative shrink-0 bg-[#f7f4ef] border-r border-[#e9e4dd] flex flex-col ${
           sidebarOpen ? 'p-6 opacity-100' : 'p-0 opacity-0 overflow-hidden border-r-0'
         } ${isResizing ? '' : 'transition-all duration-300 ease-in-out'}`}
       >
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-400 tracking-wider">
+          <h1 className="text-[#3f6f6b] font-black tracking-wide">
             Academix
           </h1>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="h-7 w-7 flex items-center justify-center rounded-lg bg-teal-950/60 border border-teal-500/20 text-teal-400 hover:bg-teal-900 text-xs transition"
+            className="h-7 w-7 flex items-center justify-center rounded-lg bg-[#a3c9c7] text-[#3a3a3a] border border-[#7aa7a3]/40 hover:bg-[#7aa7a3] transition"
             title="Collapse navigation"
             aria-label="Collapse navigation"
           >
@@ -499,26 +502,27 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
           </button>
         </div>
         <nav className="flex-1 space-y-1.5">
-          <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold bg-teal-950/40 border border-teal-500/20 text-teal-300 shadow-lg shadow-teal-500/5">
+          <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#a3c9c7] text-[#3f6f6b] border border-[#7aa7a3]/40 shadow-sm
+">
             📁 All Applications
           </button>
-          <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-teal-400 hover:bg-teal-950/20 transition-all">
+          <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-[#7a7a7a] hover:text-[#3f6f6b] hover:bg-[#cddcc7]/40 transition transition-all">
             🎓 My Profile
           </button>
-          <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-teal-400 hover:bg-teal-950/20 transition-all">
+          <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-[#7a7a7a] hover:text-[#3f6f6b] hover:bg-[#cddcc7]/40 transition transition-all">
             ⚙️ Settings
           </button>
-          <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-teal-400 hover:bg-teal-950/20 transition-all">
+          <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-[#7a7a7a] hover:text-[#3f6f6b] hover:bg-[#cddcc7]/40 transition transition-all">
             📊 Analytics
           </button>
         </nav>
         <div className="pt-4 mt-4 border-t border-teal-900/20 text-[11px] font-medium flex items-center gap-2">
           <span
             className={`h-2 w-2 rounded-full ${
-              isLive ? 'bg-teal-400 animate-pulse' : 'bg-slate-600'
+              isLive ? 'bg-[#9fb89a] animate-pulse' : 'bg-[#b7c9b0]'
             }`}
           />
-          <span className="text-slate-500">
+          <span className="text-[#5a5a5a]">
             {isLive ? 'Firestore live sync' : 'Local demo data'}
           </span>
         </div>
@@ -535,7 +539,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
             }}
             className="group absolute top-0 right-0 h-full w-1.5 cursor-col-resize"
           >
-            <div className="absolute inset-y-0 right-0 w-px bg-transparent group-hover:bg-teal-400/60 group-active:bg-teal-400/80 transition-colors" />
+            <div className="absolute inset-y-0 right-0 w-px bg-transparent group-hover:bg-[#7aa7a3]/60 group-active:bg-[#5f8f8b]/80 transition-colors" />
           </div>
         )}
       </aside>
@@ -546,7 +550,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
         {!sidebarOpen && (
           <button
             onClick={() => setSidebarOpen(true)}
-            className="absolute top-6 left-6 z-50 px-3 py-2 rounded-lg bg-teal-950/80 border border-teal-500/30 text-teal-400 hover:bg-teal-900 text-xs font-semibold transition shadow-lg"
+            className="absolute top-6 left-6 z-50 px-3 py-2 rounded-lg bg-[#a3c9c7] text-[#3a3a3a] border border-[#7aa7a3]/40 hover:bg-[#7aa7a3] transition text-xs font-semibold transition shadow-lg"
             title="Open navigation panel"
           >
             ▶ Menu
@@ -688,11 +692,11 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
 
         {/* PANE 2: MAIN DATA & NOTE DESCRIPTION CANVAS */}
         <section className={`flex-1 min-w-0 ${paneCard}`}>
-          <div className="flex-1 overflow-y-auto p-8 bg-[#0a1520]/20">
+          <div className="flex-1 overflow-y-auto p-8 bg-[#f7f4ef]/20">
             {selectedApp ? (
               <div className="space-y-5">
                 {/* Editable title + company */}
-                <div className="space-y-1">
+                <div className="space-y-2.5">
                   <input
                     value={selectedApp.title}
                     onChange={(e) => patch({ title: e.target.value })}
@@ -701,11 +705,9 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                   />
                   <input
                     value={selectedApp.organization_name}
-                    onChange={(e) =>
-                      patch({ organization_name: e.target.value })
-                    }
+                    onChange={(e) => patch({ organization_name: e.target.value })}
                     placeholder="Organization / company"
-                    className="w-full bg-transparent text-md text-teal-400/80 font-medium focus:outline-none focus:bg-[#060c12]/60 rounded-lg px-1 -ml-1 transition"
+                    className="w-full bg-transparent text-lg font-semibold text-teal-300 focus:outline-none focus:bg-[#060c12]/60 rounded-lg px-1 -ml-1 transition"
                   />
                   {/* Optional organization/program overview, under the org name */}
                   <span className="text-xs font-bold text-teal-500 uppercase tracking-widest block pl-1">
