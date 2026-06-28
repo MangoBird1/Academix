@@ -69,28 +69,28 @@ const FOLLOWUP_METHODS = ['Email', 'Portal', 'Recruiter', 'Other'];
 const OUTCOME_OPTIONS = ['Submitted', 'Interviewing', 'Offer', 'Rejected', 'Withdrew'];
 const SKILL_LABELS = ['Strong', 'Needs Improvement', 'Add to Resume', 'Add to Portfolio'];
 
-// Pane 3 readability palette and styling (Pane 3 only).
+// Pane 3 readability palette (text only — Pane 3).
 const P3 = {
   label:
-    'text-[10px] font-semibold uppercase tracking-wide leading-snug text-[#7aa7a3]',
-  primary: 'text-[#2f2f2f] font-medium leading-relaxed',
-  secondary: 'text-[#3a3a3a] leading-relaxed',
-  accent: 'text-[#5f8f8b] font-semibold leading-relaxed',
-  espresso: 'text-[#b08968] font-semibold leading-relaxed',
-  deadlineRed: 'text-[#c75c5c] font-semibold leading-relaxed',
-  deadlineGreen: 'text-[#6fa87a] font-semibold leading-relaxed',
-  meta: 'text-[11px] text-[#3a3a3a] leading-relaxed',
-  selector: 'text-[#2f2f2f] font-medium leading-relaxed',
-  chevron: 'text-[#3a3a3a] text-xs leading-relaxed',
-  timelineDate: 'text-[#2f2f2f] font-semibold leading-relaxed',
-  input: 'bg-[#f7fafc] text-[#2f2f2f] placeholder:text-[#7a7a7a] leading-relaxed',
+    'text-[10px] font-semibold uppercase tracking-wide leading-snug text-[#cddcc7]',
+  primary: 'text-[#f7fafc] font-medium leading-relaxed',
+  secondary: 'text-[#e8eef2] leading-relaxed',
+  accent: 'text-[#cddcc7] font-semibold leading-relaxed',
+  deadlineRed: 'text-[#ffb3b3] font-semibold leading-relaxed',
+  deadlineGreen: 'text-[#b8e6c0] font-semibold leading-relaxed',
+  meta: 'text-[11px] text-[#e8eef2] leading-relaxed',
+  selector: 'text-[#f7fafc] font-medium leading-relaxed',
+  chevron: 'text-[#e8eef2] text-xs leading-relaxed',
+  timelineDate: 'text-[#e8eef2] font-semibold leading-relaxed',
+  input:
+    'bg-[#060c12]/50 text-[#f7fafc] placeholder:text-[#e8eef2]/70 leading-relaxed',
   addBtn:
-    'bg-[#a3c9c7] border-[#7aa7a3]/50 text-[#2f2f2f] font-semibold',
+    'bg-[#a3c9c7] border-[#7aa7a3]/50 text-[#f7fafc] font-semibold',
   chip:
-    'bg-[#a3c9c7] border-[#7aa7a3]/40 text-[#2f2f2f] font-medium leading-relaxed',
+    'bg-[#a3c9c7] border-[#7aa7a3]/40 text-[#f7fafc] font-medium leading-relaxed',
   selectorBtn:
-    'inline-flex items-center gap-1.5 rounded-full bg-[#a3c9c7] border border-[#7aa7a3]/40 px-3 py-1 text-[11px] font-semibold hover:bg-teal-900/40 transition',
-  selectorChevron: 'text-[8px] text-[#5f8f8b]',
+    'inline-flex items-center gap-1.5 rounded-full bg-[#a3c9c7] border border-[#7aa7a3]/40 px-3 py-1 text-[11px] font-semibold text-[#f7fafc] hover:bg-teal-900/40 transition',
+  selectorChevron: 'text-[8px] text-[#cddcc7]',
 };
 const p3Collapse = {
   titleClassName: P3.label,
@@ -99,31 +99,33 @@ const p3Collapse = {
 const p3CalBtn = (active) =>
   `h-8 w-8 shrink-0 flex items-center justify-center rounded-lg border text-sm transition ${
     active
-      ? 'bg-[#a3c9c7] border-[#7aa7a3]/60 text-[#2f2f2f]'
-      : 'bg-[#f7fafc] border-[#7aa7a3]/40 text-[#5f8f8b] hover:bg-teal-900'
+      ? 'bg-[#a3c9c7] border-[#7aa7a3]/60 text-[#f7fafc]'
+      : 'bg-[#f7fafc] border-[#7aa7a3]/40 text-[#cddcc7] hover:bg-teal-900'
   }`;
 
 const p3SkillLabelStyle = (label) => {
   switch (label) {
     case 'Strong':
-      return 'bg-[#cddcc7] text-[#2f2f2f] font-semibold border-[#7aa7a3]/50';
+      return 'bg-[#cddcc7] text-[#3d1f6e] font-semibold border-[#7aa7a3]/50';
     case 'Needs Improvement':
-      return 'bg-[#e9e4dd] text-[#2f2f2f] font-semibold border-[#b08968]/50';
+      return 'bg-[#e9e4dd] text-[#3d1f6e] font-semibold border-[#b08968]/50';
     case 'Add to Resume':
-      return 'bg-[#a3c9c7] text-[#2f2f2f] font-semibold border-[#7aa7a3]/50';
+      return 'bg-[#a3c9c7] text-[#3d1f6e] font-semibold border-[#7aa7a3]/50';
     case 'Add to Portfolio':
-      return 'bg-[#cddcc7]/80 text-[#2f2f2f] font-semibold border-[#5f8f8b]/50';
+      return 'bg-[#cddcc7]/80 text-[#3d1f6e] font-semibold border-[#5f8f8b]/50';
     default:
-      return 'bg-[#f7fafc] text-[#2f2f2f] font-semibold border-[#7aa7a3]/40';
+      return 'bg-[#a3c9c7] text-[#f7fafc] font-semibold border-[#7aa7a3]/40';
   }
 };
 
-// Text-only readability palette (Pane 2).
+// Text-only readability palette (Pane 2 labels + scoped field text).
 const READ = {
   p2Label:
-    'text-xs font-bold uppercase tracking-wide leading-snug text-[#7aa7a3]',
+    'text-xs font-extrabold uppercase tracking-wide leading-snug text-[#7aa7a3]',
   p2LabelSm:
-    'text-[10px] font-bold uppercase tracking-wide leading-snug text-[#7aa7a3]',
+    'text-[10px] font-extrabold uppercase tracking-wide leading-snug text-[#7aa7a3]',
+  p2FieldText: 'text-[#2f2f2f] leading-relaxed',
+  p2FieldTextMuted: 'text-[#3a3a3a] leading-relaxed',
   p2Company: 'text-[#608f8b] font-semibold leading-relaxed tracking-wide',
 };
 
@@ -516,7 +518,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
     'bg-teal-950/10 border border-teal-500/10 p-4 rounded-xl backdrop-blur-xl';
 
   return (
-    <div className="flex h-screen w-screen bg-[#070e14] text-cyan-50 font-sans overflow-hidden select-none">
+    <div className="flex h-screen w-screen bg-gradient-to-br from-[#e8dff5] to-[#3d1f6e] font-sans overflow-hidden select-none">
       {/* 0. SIDEBAR PANEL (resizable width; shifts panes; collapses left) */}
       <aside
         style={{ width: sidebarOpen ? sidebarWidth : 0 }}
@@ -752,7 +754,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     value={selectedApp.org_description || ''}
                     onChange={(e) => patch({ org_description: e.target.value })}
                     placeholder="Organization description (optional)"
-                    className={`${resizableArea} h-12 min-h-[2.5rem] !rounded-xl text-[#3a3a3a]`}
+                    className={`${resizableArea} h-12 min-h-[2.5rem] !rounded-xl ${READ.p2FieldTextMuted}`}
                   />
                 </div>
 
@@ -804,7 +806,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     value={selectedApp.description || ''}
                     onChange={(e) => patch({ description: e.target.value })}
                     placeholder="Short summary of this opportunity..."
-                    className={`${resizableArea} h-16 min-h-[3rem]`}
+                    className={`${resizableArea} h-16 min-h-[3rem] ${READ.p2FieldText}`}
                   />
                 </div>
 
@@ -832,7 +834,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     }
                     rows={1}
                     placeholder="https://..."
-                    className={`${resizableArea} h-12 min-h-[3rem] !rounded-xl text-[#3a3a3a]`}
+                    className={`${resizableArea} h-12 min-h-[3rem] !rounded-xl ${READ.p2FieldTextMuted}`}
                   />
                 </div>
 
@@ -878,7 +880,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     value={selectedApp.notes || ''}
                     onChange={(e) => patch({ notes: e.target.value })}
                     placeholder="AI / scraping notes..."
-                    className={`${resizableArea} h-20 min-h-[3.5rem]`}
+                    className={`${resizableArea} h-20 min-h-[3.5rem] ${READ.p2FieldText}`}
                   />
                 </div>
 
@@ -891,7 +893,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     value={selectedApp.my_notes || ''}
                     onChange={(e) => patch({ my_notes: e.target.value })}
                     placeholder="Your personal notes, reminders and thoughts..."
-                    className={`${resizableArea} h-20 min-h-[3.5rem]`}
+                    className={`${resizableArea} h-20 min-h-[3.5rem] ${READ.p2FieldText}`}
                   />
                 </div>
               </div>
@@ -1250,7 +1252,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                           >
                             {skill}
                             {skillLabels[skill] ? (
-                              <span className="text-[#2f2f2f] font-semibold">
+                              <span className="text-[#e8eef2] font-semibold">
                                 · {skillLabels[skill]}
                               </span>
                             ) : null}
@@ -1417,7 +1419,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                 </CollapsibleSection>
               </>
             ) : (
-              <div className="h-full flex items-center justify-center text-[#3a3a3a] text-xs font-medium tracking-wide text-center leading-relaxed">
+              <div className="h-full flex items-center justify-center text-[#e8eef2] text-xs font-medium tracking-wide text-center leading-relaxed">
                 Metadata appears here once an entry is selected.
               </div>
             )}
