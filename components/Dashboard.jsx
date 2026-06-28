@@ -124,7 +124,7 @@ const READ = {
     'text-xs font-bold uppercase tracking-wide leading-snug text-[#7aa7a3]',
   p2LabelSm:
     'text-[10px] font-bold uppercase tracking-wide leading-snug text-[#7aa7a3]',
-  p2Company: 'text-[#2f2f2f] font-semibold leading-relaxed tracking-wide',
+  p2Company: 'text-[#608f8b] font-semibold leading-relaxed tracking-wide',
 };
 
 const CAREER_CONTACTS = [
