@@ -8,6 +8,8 @@ export default function CollapsibleSection({
   defaultOpen = true,
   highlight = false,
   right = null,
+  titleClassName,
+  chevronClassName,
   children,
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -25,12 +27,19 @@ export default function CollapsibleSection({
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between gap-2"
       >
-        <span className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">
+        <span
+          className={
+            titleClassName ||
+            'text-[10px] font-bold text-[#7aa7a3] uppercase tracking-wide leading-snug'
+          }
+        >
           {title}
         </span>
         <span className="flex items-center gap-2">
           {right}
-          <span className="text-teal-500/80 text-xs">{open ? '▾' : '▸'}</span>
+          <span className={chevronClassName || 'text-[#5a5a5a] text-xs leading-relaxed'}>
+            {open ? '▾' : '▸'}
+          </span>
         </span>
       </button>
       {open && <div className="mt-3">{children}</div>}

@@ -25,6 +25,7 @@ function MetadataSelector({
   sorted = false,
   format = identity,
   normalize = identity,
+  textClassName,
 }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
@@ -180,7 +181,9 @@ function MetadataSelector({
         className="inline-flex items-center gap-1.5 rounded-full bg-teal-950/40 border border-teal-500/20 px-3 py-1 text-[11px] font-semibold text-teal-200 hover:bg-teal-900/40 transition"
       >
         {icon ? <span className="text-[10px] leading-none">{icon}</span> : null}
-        <span>{value ? format(value) : 'Set'}</span>
+        <span className={textClassName || 'text-teal-200'}>
+          {value ? format(value) : 'Set'}
+        </span>
         <span className="text-[8px] text-teal-500/80">▼</span>
       </button>
       {menu}
@@ -189,10 +192,15 @@ function MetadataSelector({
 }
 
 // Plain-text label header with its standalone control stacked underneath.
-export function FieldGroup({ label, children }) {
+export function FieldGroup({ label, children, labelClassName }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[10px] font-bold text-[#7aa7a3] uppercase tracking-wide">
+      <span
+        className={
+          labelClassName ||
+          'text-[10px] font-bold text-[#7aa7a3] uppercase tracking-wide leading-snug'
+        }
+      >
         {label}:
       </span>
       {children}
