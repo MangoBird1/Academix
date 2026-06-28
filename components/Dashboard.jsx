@@ -69,51 +69,64 @@ const FOLLOWUP_METHODS = ['Email', 'Portal', 'Recruiter', 'Other'];
 const OUTCOME_OPTIONS = ['Submitted', 'Interviewing', 'Offer', 'Rejected', 'Withdrew'];
 const SKILL_LABELS = ['Strong', 'Needs Improvement', 'Add to Resume', 'Add to Portfolio'];
 
-// Text-only readability palette (Panes 2 & 3).
+// Pane 3 readability palette and styling (Pane 3 only).
+const P3 = {
+  label:
+    'text-[10px] font-semibold uppercase tracking-wide leading-snug text-[#7aa7a3]',
+  primary: 'text-[#2f2f2f] font-medium leading-relaxed',
+  secondary: 'text-[#3a3a3a] leading-relaxed',
+  accent: 'text-[#5f8f8b] font-semibold leading-relaxed',
+  espresso: 'text-[#b08968] font-semibold leading-relaxed',
+  deadlineRed: 'text-[#c75c5c] font-semibold leading-relaxed',
+  deadlineGreen: 'text-[#6fa87a] font-semibold leading-relaxed',
+  meta: 'text-[11px] text-[#3a3a3a] leading-relaxed',
+  selector: 'text-[#2f2f2f] font-medium leading-relaxed',
+  chevron: 'text-[#3a3a3a] text-xs leading-relaxed',
+  timelineDate: 'text-[#2f2f2f] font-semibold leading-relaxed',
+  input: 'bg-[#f7fafc] text-[#2f2f2f] placeholder:text-[#7a7a7a] leading-relaxed',
+  addBtn:
+    'bg-[#a3c9c7] border-[#7aa7a3]/50 text-[#2f2f2f] font-semibold',
+  chip:
+    'bg-[#a3c9c7] border-[#7aa7a3]/40 text-[#2f2f2f] font-medium leading-relaxed',
+  selectorBtn:
+    'inline-flex items-center gap-1.5 rounded-full bg-[#a3c9c7] border border-[#7aa7a3]/40 px-3 py-1 text-[11px] font-semibold hover:bg-teal-900/40 transition',
+  selectorChevron: 'text-[8px] text-[#5f8f8b]',
+};
+const p3Collapse = {
+  titleClassName: P3.label,
+  chevronClassName: P3.chevron,
+};
+const p3CalBtn = (active) =>
+  `h-8 w-8 shrink-0 flex items-center justify-center rounded-lg border text-sm transition ${
+    active
+      ? 'bg-[#a3c9c7] border-[#7aa7a3]/60 text-[#2f2f2f]'
+      : 'bg-[#f7fafc] border-[#7aa7a3]/40 text-[#5f8f8b] hover:bg-teal-900'
+  }`;
+
+const p3SkillLabelStyle = (label) => {
+  switch (label) {
+    case 'Strong':
+      return 'bg-[#cddcc7] text-[#2f2f2f] font-semibold border-[#7aa7a3]/50';
+    case 'Needs Improvement':
+      return 'bg-[#e9e4dd] text-[#2f2f2f] font-semibold border-[#b08968]/50';
+    case 'Add to Resume':
+      return 'bg-[#a3c9c7] text-[#2f2f2f] font-semibold border-[#7aa7a3]/50';
+    case 'Add to Portfolio':
+      return 'bg-[#cddcc7]/80 text-[#2f2f2f] font-semibold border-[#5f8f8b]/50';
+    default:
+      return 'bg-[#f7fafc] text-[#2f2f2f] font-semibold border-[#7aa7a3]/40';
+  }
+};
+
+// Text-only readability palette (Pane 2).
 const READ = {
   p2Label:
     'text-xs font-bold uppercase tracking-wide leading-snug text-[#7aa7a3]',
   p2LabelSm:
     'text-[10px] font-bold uppercase tracking-wide leading-snug text-[#7aa7a3]',
   p2Company: 'text-[#2f2f2f] font-semibold leading-relaxed tracking-wide',
-  p3Label:
-    'text-[10px] font-semibold uppercase tracking-wide leading-snug text-[#7aa7a3]',
-  p3Primary: 'text-[#2f2f2f] font-medium leading-relaxed',
-  p3Secondary: 'text-[#3a3a3a] leading-relaxed',
-  p3Accent: 'text-[#5f8f8b] font-semibold leading-relaxed',
-  p3Espresso: 'text-[#b08968] font-semibold leading-relaxed',
-  p3DeadlineRed: 'text-[#c75c5c] font-semibold leading-relaxed',
-  p3DeadlineGreen: 'text-[#6fa87a] font-semibold leading-relaxed',
-  p3Meta: 'text-[11px] text-[#3a3a3a] leading-relaxed',
-  p3Selector: 'text-[#2f2f2f] font-medium leading-relaxed',
-  p3Chevron: 'text-[#3a3a3a] text-xs leading-relaxed',
-  p3TimelineDate: 'text-[#3a3a3a] font-medium leading-relaxed',
-};
-const p3Input =
-  'bg-[#f7fafc] text-[#2f2f2f] leading-relaxed';
-const p3AddBtn =
-  'bg-teal-500/15 border-teal-500/40 text-[#2f2f2f] font-semibold';
-const p3Collapse = {
-  titleClassName: READ.p3Label,
-  chevronClassName: READ.p3Chevron,
 };
 
-const skillLabelStyle = (label) => {
-  switch (label) {
-    case 'Strong':
-      return 'bg-emerald-950/60 text-[#2f2f2f] font-semibold border-emerald-500/30';
-    case 'Needs Improvement':
-      return 'bg-amber-950/60 text-[#2f2f2f] font-semibold border-amber-500/30';
-    case 'Add to Resume':
-      return 'bg-cyan-950/60 text-[#2f2f2f] font-semibold border-cyan-500/30';
-    case 'Add to Portfolio':
-      return 'bg-purple-950/60 text-[#2f2f2f] font-semibold border-purple-500/30';
-    default:
-      return 'bg-teal-950/40 text-[#2f2f2f] font-semibold border-teal-500/20';
-  }
-};
-
-// Contact field definitions per application type.
 const CAREER_CONTACTS = [
   { key: 'recruiter_name', label: 'Recruiter name' },
   { key: 'recruiter_email', label: 'Recruiter email' },
@@ -499,12 +512,6 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
   // Resizable content textareas (drag the bottom-right corner: resize:both).
   const resizableArea =
     'w-full max-w-full p-4 rounded-2xl border border-teal-900/30 bg-[#f7fafc] text-[#2f2f2f] text-sm leading-relaxed focus:outline-none focus:border-teal-500/50 resize overflow-auto';
-  const calBtn = (active) =>
-    `h-8 w-8 shrink-0 flex items-center justify-center rounded-lg border text-sm transition ${
-      active
-        ? 'bg-teal-500/20 border-teal-400/50 text-teal-200'
-        : 'bg-teal-950/50 border-teal-500/20 text-teal-400 hover:bg-teal-900'
-    }`;
   const glassCard =
     'bg-teal-950/10 border border-teal-500/10 p-4 rounded-xl backdrop-blur-xl';
 
@@ -912,30 +919,34 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
               <>
                 {/* LOCATION / CATEGORY */}
                 <div className={`flex flex-col gap-3 ${glassCard}`}>
-                  <FieldGroup label="Location" labelClassName={READ.p3Label}>
+                  <FieldGroup label="Location" labelClassName={P3.label}>
                     <LocationSelector
                       value={selectedApp.location}
                       options={locationOptions}
                       onSelect={(v) => handleMetaChange('location', v)}
                       onAddOption={(v) => handleAddOption('location', v)}
-                      textClassName={READ.p3Selector}
+                      textClassName={P3.selector}
+                      buttonClassName={P3.selectorBtn}
+                      chevronClassName={P3.selectorChevron}
                     />
                   </FieldGroup>
 
-                  <FieldGroup label="Category" labelClassName={READ.p3Label}>
+                  <FieldGroup label="Category" labelClassName={P3.label}>
                     <CategorySelector
                       value={selectedApp.category}
                       options={categoryOptions}
                       onSelect={(v) => handleMetaChange('category', v)}
                       onAddOption={(v) => handleAddOption('category', v)}
-                      textClassName={READ.p3Selector}
+                      textClassName={P3.selector}
+                      buttonClassName={P3.selectorBtn}
+                      chevronClassName={P3.selectorChevron}
                     />
                   </FieldGroup>
                 </div>
 
                 {/* DEADLINES */}
                 <div className={`flex flex-col gap-4 ${glassCard}`}>
-                  <span className={READ.p3Label}>Deadlines:</span>
+                  <span className={P3.label}>Deadlines:</span>
 
                   {/* Application deadline (editable via toggle calendar) */}
                   <div>
@@ -943,10 +954,10 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                       <div className="flex items-center gap-3">
                         <span className="text-lg">📅</span>
                         <div>
-                          <p className={READ.p3Label}>
+                          <p className={P3.label}>
                             Deadline of Application
                           </p>
-                          <p className={`text-sm ${READ.p3DeadlineRed}`}>
+                          <p className={`text-sm ${P3.deadlineRed}`}>
                             {formatLong(selectedApp.application_deadline)}
                           </p>
                         </div>
@@ -957,7 +968,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                             c === 'deadline' ? null : 'deadline'
                           )
                         }
-                        className={calBtn(openCalendar === 'deadline')}
+                        className={p3CalBtn(openCalendar === 'deadline')}
                         title="Toggle deadline calendar"
                         aria-label="Toggle deadline calendar"
                       >
@@ -980,10 +991,10 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                       <div className="flex items-center gap-3">
                         <span className="text-lg">⏱️</span>
                         <div>
-                          <p className={READ.p3Label}>
+                          <p className={P3.label}>
                             Personal Completion Deadline
                           </p>
-                          <p className={`text-sm ${READ.p3DeadlineGreen}`}>
+                          <p className={`text-sm ${P3.deadlineGreen}`}>
                             {selectedApp.personal_completion_deadline
                               ? formatLong(
                                   selectedApp.personal_completion_deadline
@@ -996,7 +1007,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                         onClick={() =>
                           setOpenCalendar((c) => (c === 'goal' ? null : 'goal'))
                         }
-                        className={calBtn(openCalendar === 'goal')}
+                        className={p3CalBtn(openCalendar === 'goal')}
                         title="Toggle goal calendar"
                         aria-label="Toggle goal calendar"
                       >
@@ -1012,7 +1023,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                         />
                       </div>
                     )}
-                    <p className={`pl-1 mt-2 ${READ.p3Secondary}`}>
+                    <p className={`pl-1 mt-2 ${P3.secondary}`}>
                       Goal date is capped at the official closing date.
                     </p>
                   </div>
@@ -1021,8 +1032,8 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                 {/* TASKS */}
                 <div className={`flex flex-col gap-3 ${glassCard}`}>
                   <div className="flex items-center justify-between">
-                    <span className={READ.p3Label}>Tasks:</span>
-                    <span className={`text-xs font-semibold ${READ.p3Accent}`}>
+                    <span className={P3.label}>Tasks:</span>
+                    <span className={`text-xs font-semibold ${P3.accent}`}>
                       {doneCount}/{tasks.length} completed
                     </span>
                   </div>
@@ -1060,8 +1071,8 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                         <span
                           className={`flex-1 leading-relaxed ${
                             task.done
-                              ? `line-through ${READ.p3Secondary}`
-                              : READ.p3Primary
+                              ? `line-through ${P3.secondary}`
+                              : P3.primary
                           }`}
                         >
                           {task.text}
@@ -1076,7 +1087,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                       </li>
                     ))}
                     {tasks.length === 0 && (
-                      <li className={`text-xs italic ${READ.p3Secondary}`}>
+                      <li className={`text-xs italic ${P3.secondary}`}>
                         No tasks yet — add one below.
                       </li>
                     )}
@@ -1090,11 +1101,11 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                         if (e.key === 'Enter') handleAddTask();
                       }}
                       placeholder="Add a task..."
-                      className={`flex-1 px-3 py-1.5 rounded-lg border border-teal-900/40 text-xs focus:outline-none focus:border-teal-500/50 ${p3Input}`}
+                      className={`flex-1 px-3 py-1.5 rounded-lg border border-teal-900/40 text-xs focus:outline-none focus:border-teal-500/50 ${P3.input}`}
                     />
                     <button
                       onClick={handleAddTask}
-                      className={`px-3 py-1.5 rounded-lg border text-xs hover:bg-teal-500/20 transition ${p3AddBtn}`}
+                      className={`px-3 py-1.5 rounded-lg border text-xs hover:bg-teal-500/20 transition ${P3.addBtn}`}
                     >
                       Add
                     </button>
@@ -1107,7 +1118,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                   defaultOpen={false}
                   {...p3Collapse}
                 >
-                  <p className={`text-sm ${READ.p3Primary}`}>
+                  <p className={`text-sm ${P3.primary}`}>
                     {formatDateTime(selectedApp.updated_at)}
                   </p>
                 </CollapsibleSection>
@@ -1119,7 +1130,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                   {...p3Collapse}
                 >
                   <div className="flex flex-col gap-3">
-                    <FieldGroup label="Follow-up date" labelClassName={READ.p3Label}>
+                    <FieldGroup label="Follow-up date" labelClassName={P3.label}>
                       <div>
                         <button
                           onClick={() =>
@@ -1127,7 +1138,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                               c === 'followup' ? null : 'followup'
                             )
                           }
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition ${p3Input} ${READ.p3Selector} ${
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition ${P3.input} ${P3.selector} ${
                             selectedApp.follow_up_reminder
                               ? 'border border-teal-400/60 ring-1 ring-teal-400/40'
                               : 'border border-teal-900/40 hover:border-teal-500/50'
@@ -1151,17 +1162,19 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                         )}
                       </div>
                     </FieldGroup>
-                    <FieldGroup label="Follow-up method" labelClassName={READ.p3Label}>
+                    <FieldGroup label="Follow-up method" labelClassName={P3.label}>
                       <Selector
                         value={selectedApp.follow_up_method}
                         options={FOLLOWUP_METHODS}
                         onSelect={(v) => patch({ follow_up_method: v })}
                         onAddOption={() => {}}
-                        textClassName={READ.p3Selector}
+                        textClassName={P3.selector}
+                        buttonClassName={P3.selectorBtn}
+                        chevronClassName={P3.selectorChevron}
                       />
                     </FieldGroup>
                     <div className="flex items-center justify-between">
-                      <span className={READ.p3Label}>
+                      <span className={P3.label}>
                         Reminder:
                       </span>
                       <button
@@ -1198,13 +1211,13 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                       <FieldGroup
                         key={f.key}
                         label={f.label}
-                        labelClassName={READ.p3Label}
+                        labelClassName={P3.label}
                       >
                         <input
                           value={selectedApp.contacts?.[f.key] || ''}
                           onChange={(e) => patchContact(f.key, e.target.value)}
                           placeholder={f.label}
-                          className={`w-full px-3 py-1.5 rounded-lg border border-teal-900/40 text-xs focus:outline-none focus:border-teal-500/50 transition ${p3Input}`}
+                          className={`w-full px-3 py-1.5 rounded-lg border border-teal-900/40 text-xs focus:outline-none focus:border-teal-500/50 transition ${P3.input}`}
                         />
                       </FieldGroup>
                     ))}
@@ -1231,13 +1244,13 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                                 ? `Label: ${skillLabels[skill]} (click to change)`
                                 : 'Click to label'
                             }
-                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${skillLabelStyle(
+                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${p3SkillLabelStyle(
                               skillLabels[skill]
                             )}`}
                           >
                             {skill}
                             {skillLabels[skill] ? (
-                              <span className="text-[#3a3a3a] font-medium">
+                              <span className="text-[#2f2f2f] font-semibold">
                                 · {skillLabels[skill]}
                               </span>
                             ) : null}
@@ -1254,7 +1267,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                         </span>
                       ))}
                       {skillsList.length === 0 && (
-                        <span className={`text-xs italic ${READ.p3Secondary}`}>
+                        <span className={`text-xs italic ${P3.secondary}`}>
                           No skills yet.
                         </span>
                       )}
@@ -1267,16 +1280,16 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                           if (e.key === 'Enter') addCustomSkill();
                         }}
                         placeholder="Add a skill..."
-                        className={`flex-1 px-3 py-1.5 rounded-lg border border-teal-900/40 text-xs focus:outline-none focus:border-teal-500/50 ${p3Input}`}
+                        className={`flex-1 px-3 py-1.5 rounded-lg border border-teal-900/40 text-xs focus:outline-none focus:border-teal-500/50 ${P3.input}`}
                       />
                       <button
                         onClick={addCustomSkill}
-                        className={`px-3 py-1.5 rounded-lg border text-xs hover:bg-teal-500/20 transition ${p3AddBtn}`}
+                        className={`px-3 py-1.5 rounded-lg border text-xs hover:bg-teal-500/20 transition ${P3.addBtn}`}
                       >
                         Add
                       </button>
                     </div>
-                    <p className={READ.p3Meta}>
+                    <p className={P3.meta}>
                       Aggregated from AI-extracted skills + your manual additions.
                       Click a tag to cycle: Strong → Needs Improvement → Add to
                       Resume → Add to Portfolio.
@@ -1304,10 +1317,10 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                             )}
                           </div>
                           <div className="flex-1 -mt-0.5">
-                            <p className={`text-sm font-semibold ${READ.p3Primary}`}>
+                            <p className={`text-sm font-semibold ${P3.primary}`}>
                               {ev.label}
                             </p>
-                            <p className={`text-[11px] ${READ.p3TimelineDate}`}>
+                            <p className={`text-[11px] ${P3.timelineDate}`}>
                               {formatLong(ev.date)}
                             </p>
                           </div>
@@ -1321,7 +1334,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                         </li>
                       ))}
                       {timeline.length === 0 && (
-                        <li className={`text-xs italic ${READ.p3Secondary}`}>
+                        <li className={`text-xs italic ${P3.secondary}`}>
                           No events yet.
                         </li>
                       )}
@@ -1332,7 +1345,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                           <button
                             key={s}
                             onClick={() => setNewTimelineLabel(s)}
-                            className="px-2 py-0.5 rounded-full bg-teal-950/40 border border-teal-500/20 text-[10px] text-[#2f2f2f] font-medium leading-relaxed hover:bg-teal-900/40 transition"
+                            className={`px-2 py-0.5 rounded-full border text-[10px] hover:bg-teal-900/40 transition ${P3.chip}`}
                           >
                             {s}
                           </button>
@@ -1345,7 +1358,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                           value={newTimelineLabel}
                           onChange={(e) => setNewTimelineLabel(e.target.value)}
                           placeholder="Event"
-                          className={`flex-1 min-w-0 px-3 py-1.5 rounded-lg border border-teal-900/40 text-xs focus:outline-none focus:border-teal-500/50 ${p3Input}`}
+                          className={`flex-1 min-w-0 px-3 py-1.5 rounded-lg border border-teal-900/40 text-xs focus:outline-none focus:border-teal-500/50 ${P3.input}`}
                         />
                         <button
                           onClick={() =>
@@ -1353,14 +1366,14 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                               c === 'timeline' ? null : 'timeline'
                             )
                           }
-                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-teal-900/40 text-xs hover:border-teal-500/50 transition ${p3Input} ${READ.p3Selector}`}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-teal-900/40 text-xs hover:border-teal-500/50 transition ${P3.input} ${P3.selector}`}
                         >
                           <span>📆</span>
                           {formatLong(newTimelineDate)}
                         </button>
                         <button
                           onClick={addTimelineEvent}
-                          className={`px-3 py-1.5 rounded-lg border text-xs hover:bg-teal-500/20 transition ${p3AddBtn}`}
+                          className={`px-3 py-1.5 rounded-lg border text-xs hover:bg-teal-500/20 transition ${P3.addBtn}`}
                         >
                           Add
                         </button>
@@ -1386,7 +1399,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                   {...p3Collapse}
                   right={
                     selectedApp.outcome ? (
-                      <span className={`text-[10px] font-semibold ${READ.p3Accent}`}>
+                      <span className={`text-[10px] font-semibold ${P3.primary}`}>
                         {selectedApp.outcome}
                       </span>
                     ) : null
@@ -1397,12 +1410,14 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                     options={OUTCOME_OPTIONS}
                     onSelect={(v) => patch({ outcome: v })}
                     onAddOption={() => {}}
-                    textClassName={READ.p3Selector}
+                    textClassName={P3.selector}
+                    buttonClassName={P3.selectorBtn}
+                    chevronClassName={P3.selectorChevron}
                   />
                 </CollapsibleSection>
               </>
             ) : (
-              <div className="h-full flex items-center justify-center text-teal-800 text-xs font-medium tracking-wide text-center">
+              <div className="h-full flex items-center justify-center text-[#3a3a3a] text-xs font-medium tracking-wide text-center leading-relaxed">
                 Metadata appears here once an entry is selected.
               </div>
             )}
