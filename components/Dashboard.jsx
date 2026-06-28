@@ -72,25 +72,25 @@ const SKILL_LABELS = ['Strong', 'Needs Improvement', 'Add to Resume', 'Add to Po
 // Pane 3 readability palette (text only — Pane 3).
 const P3 = {
   label:
-    'text-[10px] font-semibold uppercase tracking-wide leading-snug text-[#cddcc7]',
-  primary: 'text-[#f7fafc] font-medium leading-relaxed',
-  secondary: 'text-[#e8eef2] leading-relaxed',
-  accent: 'text-[#cddcc7] font-semibold leading-relaxed',
-  deadlineRed: 'text-[#ffb3b3] font-semibold leading-relaxed',
-  deadlineGreen: 'text-[#b8e6c0] font-semibold leading-relaxed',
-  meta: 'text-[11px] text-[#e8eef2] leading-relaxed',
-  selector: 'text-[#f7fafc] font-medium leading-relaxed',
-  chevron: 'text-[#e8eef2] text-xs leading-relaxed',
-  timelineDate: 'text-[#e8eef2] font-semibold leading-relaxed',
+    'text-[10px] font-semibold uppercase tracking-wide leading-snug text-[#7aa7a3]',
+  primary: 'text-[#2f2f2f] font-medium leading-relaxed',
+  secondary: 'text-[#3a3a3a] leading-relaxed',
+  accent: 'text-[#5f8f8b] font-semibold leading-relaxed',
+  deadlineRed: 'text-[#c75c5c] font-semibold leading-relaxed',
+  deadlineGreen: 'text-[#6fa87a] font-semibold leading-relaxed',
+  meta: 'text-[11px] text-[#3a3a3a] leading-relaxed',
+  selector: 'text-[#2f2f2f] font-medium leading-relaxed',
+  chevron: 'text-[#3a3a3a] text-xs leading-relaxed',
+  timelineDate: 'text-[#3a3a3a] font-semibold leading-relaxed',
   input:
-    'bg-[#060c12]/50 text-[#f7fafc] placeholder:text-[#e8eef2]/70 leading-relaxed',
+    'bg-[#060c12]/80 text-[#f7fafc] placeholder:text-[#e8eef2]/70 leading-relaxed',
   addBtn:
-    'bg-[#a3c9c7] border-[#7aa7a3]/50 text-[#f7fafc] font-semibold',
+    'bg-[#a3c9c7] border-[#7aa7a3]/50 text-[#2f2f2f] font-semibold',
   chip:
-    'bg-[#a3c9c7] border-[#7aa7a3]/40 text-[#f7fafc] font-medium leading-relaxed',
+    'bg-[#a3c9c7] border-[#7aa7a3]/40 text-[#2f2f2f] font-medium leading-relaxed',
   selectorBtn:
-    'inline-flex items-center gap-1.5 rounded-full bg-[#a3c9c7] border border-[#7aa7a3]/40 px-3 py-1 text-[11px] font-semibold text-[#f7fafc] hover:bg-teal-900/40 transition',
-  selectorChevron: 'text-[8px] text-[#cddcc7]',
+    'inline-flex items-center gap-1.5 rounded-full bg-[#a3c9c7] border border-[#7aa7a3]/40 px-3 py-1 text-[11px] font-semibold hover:bg-teal-900/40 transition',
+  selectorChevron: 'text-[8px] text-[#5f8f8b]',
 };
 const p3Collapse = {
   titleClassName: P3.label,
@@ -99,22 +99,22 @@ const p3Collapse = {
 const p3CalBtn = (active) =>
   `h-8 w-8 shrink-0 flex items-center justify-center rounded-lg border text-sm transition ${
     active
-      ? 'bg-[#a3c9c7] border-[#7aa7a3]/60 text-[#f7fafc]'
-      : 'bg-[#f7fafc] border-[#7aa7a3]/40 text-[#cddcc7] hover:bg-teal-900'
+      ? 'bg-[#a3c9c7] border-[#7aa7a3]/60 text-[#2f2f2f]'
+      : 'bg-[#f7fafc] border-[#7aa7a3]/40 text-[#5f8f8b] hover:bg-teal-900'
   }`;
 
 const p3SkillLabelStyle = (label) => {
   switch (label) {
     case 'Strong':
-      return 'bg-[#cddcc7] text-[#3d1f6e] font-semibold border-[#7aa7a3]/50';
+      return 'bg-[#cddcc7] text-[#2f2f2f] font-semibold border-[#7aa7a3]/50';
     case 'Needs Improvement':
-      return 'bg-[#e9e4dd] text-[#3d1f6e] font-semibold border-[#b08968]/50';
+      return 'bg-[#e9e4dd] text-[#2f2f2f] font-semibold border-[#b08968]/50';
     case 'Add to Resume':
-      return 'bg-[#a3c9c7] text-[#3d1f6e] font-semibold border-[#7aa7a3]/50';
+      return 'bg-[#a3c9c7] text-[#2f2f2f] font-semibold border-[#7aa7a3]/50';
     case 'Add to Portfolio':
-      return 'bg-[#cddcc7]/80 text-[#3d1f6e] font-semibold border-[#5f8f8b]/50';
+      return 'bg-[#cddcc7]/80 text-[#2f2f2f] font-semibold border-[#5f8f8b]/50';
     default:
-      return 'bg-[#a3c9c7] text-[#f7fafc] font-semibold border-[#7aa7a3]/40';
+      return 'bg-[#a3c9c7] text-[#2f2f2f] font-semibold border-[#7aa7a3]/40';
   }
 };
 
@@ -1140,7 +1140,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                               c === 'followup' ? null : 'followup'
                             )
                           }
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition ${P3.input} ${P3.selector} ${
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition ${P3.input} ${
                             selectedApp.follow_up_reminder
                               ? 'border border-teal-400/60 ring-1 ring-teal-400/40'
                               : 'border border-teal-900/40 hover:border-teal-500/50'
@@ -1252,7 +1252,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                           >
                             {skill}
                             {skillLabels[skill] ? (
-                              <span className="text-[#e8eef2] font-semibold">
+                              <span className="text-[#3a3a3a] font-semibold">
                                 · {skillLabels[skill]}
                               </span>
                             ) : null}
@@ -1368,7 +1368,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                               c === 'timeline' ? null : 'timeline'
                             )
                           }
-                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-teal-900/40 text-xs hover:border-teal-500/50 transition ${P3.input} ${P3.selector}`}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-teal-900/40 text-xs hover:border-teal-500/50 transition ${P3.input}`}
                         >
                           <span>📆</span>
                           {formatLong(newTimelineDate)}
@@ -1419,7 +1419,7 @@ export default function AcademixTealDashboard({ initialApplications = [] }) {
                 </CollapsibleSection>
               </>
             ) : (
-              <div className="h-full flex items-center justify-center text-[#e8eef2] text-xs font-medium tracking-wide text-center leading-relaxed">
+              <div className="h-full flex items-center justify-center text-[#3a3a3a] text-xs font-medium tracking-wide text-center leading-relaxed">
                 Metadata appears here once an entry is selected.
               </div>
             )}
